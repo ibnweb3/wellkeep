@@ -1,0 +1,16 @@
+name = "borehole-water"
+main = "web/src/worker.js"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "web/public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[vars]
+POOL_ID = "0sff927c3b55b7a664a6affcf78f70703bcb327b20"
+RELAY_ID = "bh-relay.testnet"
+MECHANIC_ID = "bh-mechanic.testnet"
+DONOR_ID = "bh-donor.testnet"
+RPC_URL = "https://test.rpc.fastnear.com"

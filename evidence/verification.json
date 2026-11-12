@@ -1,13 +1,13 @@
 {
- "checkedAt": "2026-11-12T23:21:53.252Z",
+ "checkedAt": "2026-11-12T23:50:45.421Z",
  "network": "testnet",
- "poolId": "0s47009d106521e769d285d82f57b77376e343e410",
+ "poolId": "0sff927c3b55b7a664a6affcf78f70703bcb327b20",
  "results": [
   {
    "id": "account",
    "title": "The account exists on-chain",
    "ok": true,
-   "detail": "0s47009d106521e769d285d82f57b77376e343e410"
+   "detail": "0sff927c3b55b7a664a6affcf78f70703bcb327b20"
   },
   {
    "id": "keys",
@@ -19,25 +19,25 @@
    "id": "byhash",
    "title": "Its code is referenced by hash, so the publisher cannot change it",
    "ok": true,
-   "detail": "global code hash BdJDAK7ty9okhKaimUnE8otDAsUrCHaWXYmXH7kaboXZ"
+   "detail": "global code hash 3ecEVdauLBD77PNzxB7VjpeaDhX5wNdpw1iT1HrHdqW7"
   },
   {
    "id": "wasm",
    "title": "The code at that hash is the wasm shipped in this repository",
    "ok": true,
-   "detail": "repository wasm 242540 bytes, sha256 as base58: BdJDAK7ty9okhKaimUnE8otDAsUrCHaWXYmXH7kaboXZ"
+   "detail": "repository wasm 230074 bytes, sha256 as base58: 3ecEVdauLBD77PNzxB7VjpeaDhX5wNdpw1iT1HrHdqW7"
   },
   {
    "id": "chaincode",
    "title": "The code the chain stores under that hash is byte-identical to the repository wasm",
    "ok": true,
-   "detail": "242540 bytes read back from the chain"
+   "detail": "230074 bytes read back from the chain"
   },
   {
    "id": "address",
    "title": "The address is derived from exactly this code and this starting state",
    "ok": true,
-   "detail": "recomputed here: 0s47009d106521e769d285d82f57b77376e343e410"
+   "detail": "recomputed here: 0sff927c3b55b7a664a6affcf78f70703bcb327b20"
   },
   {
    "id": "rules",

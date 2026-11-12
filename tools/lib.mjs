@@ -2,7 +2,7 @@
 import { Near } from "near-kit";
 import { readFileSync } from "node:fs";
 
-export const NETWORK = { networkId: "testnet", rpcUrl: "https://rpc.testnet.near.org" };
+export const NETWORK = { networkId: "testnet", rpcUrl: "https://test.rpc.fastnear.com" };
 
 export function loadKey(accountId) {
   return JSON.parse(readFileSync(`.keys/${accountId}.json`, "utf8"));

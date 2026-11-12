@@ -2,3 +2,5 @@
 node_modules/
 *.wasm
 !evidence/*.wasm
+.dev.vars
+.wrangler/

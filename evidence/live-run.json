@@ -1,0 +1,125 @@
+{
+ "pool": "0sff927c3b55b7a664a6affcf78f70703bcb327b20",
+ "ranAt": "2026-11-12T23:54:50.512Z",
+ "network": "testnet",
+ "log": [
+  {
+   "step": "reported",
+   "pump": 1,
+   "job": 0,
+   "tx": "2XjmYwSFt4Qo9TiNRzTbA5wTEWfy93VQ969Jr9x8aUuj"
+  },
+  {
+   "step": "accepted",
+   "job": 0,
+   "price": "500000000000000000000000",
+   "tx": "13m2zfoByQWEbuGUgores1qesaHm2J3d1PL63MXCcqmA"
+  },
+  {
+   "step": "fix posted, households drawn at random",
+   "job": 0,
+   "asked": [
+    15,
+    18,
+    17,
+    13,
+    23,
+    21,
+    2,
+    16,
+    27
+   ],
+   "tx": "4SzNtVwN9aQfaV8Lhdc5DKra8USxGhN7caXJZXU7i9sv"
+  },
+  {
+   "step": "village said it works",
+   "job": 0,
+   "status": "Approved",
+   "paid": "350000000000000000000000",
+   "held": "150000000000000000000000",
+   "mechanicGainNEAR": 0.35,
+   "lastVoteTx": "GWiPFzy2akAhHHXJEidswsZQbVnTqnx4RJg7F8MEYE88"
+  },
+  {
+   "step": "A released held share",
+   "job": 0,
+   "status": "Completed",
+   "paid": "500000000000000000000000",
+   "tx": "6TRGhPTApkfRgxgJQPBavftydPdxJmXDFc5RdaDRPsaY"
+  },
+  {
+   "step": "reported",
+   "pump": 2,
+   "job": 1,
+   "tx": "AUK1x7PGg4nRMiMX1X6KNaadZCueo391ajAJQCpuBfwo"
+  },
+  {
+   "step": "accepted",
+   "job": 1,
+   "price": "400000000000000000000000",
+   "tx": "E3UJDNVHjk4hecBf8xHPGfiMyAKBvggS3AyigNUwUyRL"
+  },
+  {
+   "step": "fix posted, households drawn at random",
+   "job": 1,
+   "asked": [
+    20,
+    16,
+    7,
+    0,
+    4,
+    26,
+    3,
+    17,
+    1
+   ],
+   "tx": "eHvBgC1zcesRju34xweTz6T6WfM6PuwzyHhuBBMpbXb"
+  },
+  {
+   "step": "village said it works",
+   "job": 1,
+   "status": "Approved",
+   "paid": "280000000000000000000000",
+   "held": "120000000000000000000000",
+   "mechanicGainNEAR": 0.28,
+   "lastVoteTx": "7kGcB7kE8NwYv2wvH6SBYaQRjzBqckBv7nUK3HXspiuX"
+  },
+  {
+   "step": "first broken-again report",
+   "job": 1,
+   "status": "Approved"
+  },
+  {
+   "step": "second different household reported: held share forfeited",
+   "job": 1,
+   "status": "Forfeited",
+   "held": "0",
+   "returnedToFundYocto": "120000000000000000000000"
+  },
+  {
+   "step": "refusals",
+   "refusals": [
+    {
+     "name": "reuse a spent one-time code",
+     "refused": true,
+     "reason": "Contract call failed: 0sff927c3b55b7a664a6affcf78f70703bcb327b20.report_broken - Smart contract panicked: code slot already used"
+    },
+    {
+     "name": "unregistered account takes a job",
+     "refused": true,
+     "reason": "Contract call failed: 0sff927c3b55b7a664a6affcf78f70703bcb327b20.accept_job - Smart contract panicked: not a registered mechanic"
+    },
+    {
+     "name": "price above the cap",
+     "refused": true,
+     "reason": "Contract call failed: 0sff927c3b55b7a664a6affcf78f70703bcb327b20.accept_job - Smart contract panicked: price outside the allowed range"
+    }
+   ]
+  },
+  {
+   "step": "refusal-test job cancelled by both signers",
+   "job": 3,
+   "status": "Reported"
+  }
+ ]
+}

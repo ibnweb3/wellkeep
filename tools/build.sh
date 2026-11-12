@@ -5,7 +5,9 @@
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$here/contract"
-CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/bh-target}" cargo build --release --target wasm32-unknown-unknown
+# --cfg near makes near-sdk use the real on-chain host functions (panic messages, hashing). Without it the
+# panic text is lost ("unreachable") and hashing falls back to bundled Rust code.
+RUSTFLAGS="--cfg near" CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/bh-target}" cargo build --release --target wasm32-unknown-unknown
 raw="${CARGO_TARGET_DIR:-$HOME/bh-target}/wasm32-unknown-unknown/release/borehole_pool.wasm"
 WASMOPT="${WASMOPT:-$HOME/tools/node_modules/.bin/wasm-opt}"
 "$WASMOPT" -Oz --enable-bulk-memory --enable-sign-ext --enable-nontrapping-float-to-int \

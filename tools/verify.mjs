@@ -12,7 +12,7 @@ globalThis.fetch = async (u, o) => {
   return realFetch(u, o);
 };
 const results = await runChecks({
-  rpcUrl: "https://rpc.testnet.near.org",
+  rpcUrl: process.env.RPC_URL || "https://test.rpc.fastnear.com",
   poolId: pub.poolId,
   wasmUrl: "local:wasm",
   stateUrl: "local:state",

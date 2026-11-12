@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import { buildLevels, credential, fromHex, ACTIONS } from "../web/public/merkle.js";
 
 export async function loadCards() {
-  const leaves = JSON.parse(readFileSync("demo/leaves.json", "utf8"));
-  const cards = JSON.parse(readFileSync("demo/cards.json", "utf8"));
+  const leaves = JSON.parse(readFileSync("web/public/demo/leaves.json", "utf8"));
+  const cards = JSON.parse(readFileSync("web/public/demo/cards.json", "utf8"));
   const levels = await buildLevels(leaves.leaves.map(fromHex));
   return { levels, slots: leaves.slots, cards: cards.cards, root: leaves.root };
 }

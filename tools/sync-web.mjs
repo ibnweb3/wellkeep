@@ -1,0 +1,24 @@
+// Prepares web/public: copies the evidence files the verifier needs and bundles the verifier.
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { build } from "esbuild";
+
+mkdirSync("web/public/evidence", { recursive: true });
+for (const f of ["borehole_pool.wasm", "state-init.json", "publish.json"]) copyFileSync(`evidence/${f}`, `web/public/evidence/${f}`);
+await build({
+  entryPoints: ["web/src/verify-core.js"],
+  bundle: true,
+  format: "esm",
+  outfile: "web/public/verify-bundle.js",
+  minify: true,
+  target: "es2022",
+  logLevel: "warning",
+});
+const pub = JSON.parse(readFileSync("evidence/publish.json", "utf8"));
+writeFileSync(
+  "web/public/config.json",
+  JSON.stringify({ poolId: pub.poolId, codeHash: pub.codeHash, rpcUrl: "https://test.rpc.fastnear.com", explorer: "https://testnet.nearblocks.io" }, null, 1),
+);
+// keep the Worker's pool id in step with the published pool
+const toml = readFileSync("wrangler.toml", "utf8").replace(/POOL_ID = ".*"/, `POOL_ID = "${pub.poolId}"`);
+writeFileSync("wrangler.toml", toml);
+console.log("web/public ready for", pub.poolId);

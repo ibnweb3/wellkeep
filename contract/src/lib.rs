@@ -428,7 +428,7 @@ impl Contract {
                 job.reporters.push(hh);
                 self.jobs.insert(oj, job);
             }
-            self.log("report", Some(oj), Some(pump), 0, "household");
+            self.log("report", Some(oj), Some(pump), 0, &format!("hh-{hh}"));
             return oj;
         }
         let id = self.job_count;
@@ -456,7 +456,7 @@ impl Contract {
         p.open_job = Some(id);
         self.pumps.insert(pump, p);
         self.jobs.insert(id, job);
-        self.log("report", Some(id), Some(pump), 0, "household");
+        self.log("report", Some(id), Some(pump), 0, &format!("hh-{hh}"));
         id
     }
 
@@ -503,7 +503,7 @@ impl Contract {
         } else {
             j.no.push(hh);
         }
-        self.log("vote", Some(job), Some(j.pump), 0, "household");
+        self.log("vote", Some(job), Some(j.pump), 0, &format!("hh-{hh}"));
         self.jobs.insert(job, j);
         self.evaluate(job);
     }

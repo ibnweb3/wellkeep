@@ -1,6 +1,6 @@
 # SCOPE: Borehole (community water-point repair fund on NEAR)
 
-Status: draft for the owner's approval, written 2026-11-12. Development ends 2026-11-14 23:59 UTC.
+Status: approved by the owner 2026-11-12; amended 2026-11-13 with what actually got built (see "Changes made while building"). Development ends 2026-11-14 23:59 UTC.
 Tracks: NFTs + Real-World Money.
 
 ## One-line idea
@@ -39,13 +39,21 @@ Source: the research report the owner commissioned (not independently re-checked
 3. **"Check before you give" verifier.** One click in the UI recomputes the deterministic `0s` address from the code hash and initial storage, then confirms by RPC: zero access keys, code referenced by hash (not by publisher), roll hash matches. Results are recorded in `evidence/`.
 4. **One-time scratch codes.** Per-household, per-answer codes verified against a Merkle root committed at enrolment. (Cut line: if this slips, fall back to relayer-submitted votes from household sub-account keys, stated in the README.)
 5. **Random sample.** At review time the contract draws about 10 households using the on-chain random seed. Limit stated: block producers have slight influence over the seed; acceptable at these stakes.
-6. **Gasless voting.** A relayer submits transactions (NEP-366), so households never hold NEAR.
+6. **Gasless voting.** A relayer account submits the transaction and pays the gas, so households never hold NEAR. The one-time code is the credential, checked on-chain; the relayer has no special rights. (NEP-366 meta-transactions are NOT used: they would need a signing key per household, which the printed-code design avoids.)
 7. **Two-stage payment** with a hold period (shortened to minutes in the demo build, clearly labelled).
-8. **Named pump accounts.** Each pump is a nested account (e.g. `well-3.<pool>`) acting as the donation address and earmark. FIRST THING TO CUT if time runs short (earmarks would then live in the pool's internal ledger and the name would be display-only; the README will say so).
+8. **Named pump accounts: CUT.** Pumps are records inside the pool (token ids `pump-0`, `pump-1`, ...) with an earmark ledger; donors fund a pump by number. Nested sub-account names such as `well-3.<pool>` were not built (each would need its own forwarding contract and another publish).
 9. **NFT views.** Household pass and pump record exposed as non-transferable NEP-171 tokens (transfer is disabled). Honest purpose: identity and service history, not a tradable asset.
 10. **Web UI (Cloudflare Worker static assets):** community list and pump page, fund balance, report/vote screens (simulated card), job timeline, the verifier, and a public ledger.
 11. **Tests, README, evidence folder.**
 12. **Measured costs:** real testnet cost of creating the pool account, a pump account, and publishing the code (recorded, not copied from docs).
+
+## Changes made while building
+
+- Nested pump accounts cut; NEP-366 not used (see IN 6 and 8).
+- The mechanic cash-out is not simulated in the UI at all; the UI and README say it is not built.
+- The live pool holds a separate 3 NEAR storage reserve (not part of the tracked fund) so storage growth cannot starve payouts.
+- Both signer accounts, the mechanic, the donor and the relayer are throwaway testnet accounts controlled by the builder. In a real deployment the signers would be two independent organisations.
+- The web page reads the chain directly through a public RPC; only the relayer, the demo mechanic and the demo donor go through the Worker.
 
 ## OUT (not built, and said so)
 
@@ -69,7 +77,8 @@ What NEAR makes better or easier here:
 - **The address proves the rules.** A deterministic account's address is derived from its code and starting data, with no keys. A donor can recompute it and check by RPC that nobody holds a key and the code cannot change (referenced by hash). This is the best claim we have.
 - **Gasless users.** NEP-366 meta-transactions let villagers act without ever holding NEAR.
 - **Cheap accounts at scale.** One global contract can serve any village; docs say using it costs under 0.001 NEAR. We will measure and record the real number.
-- **Readable nested names** for the community and each pump.
+- **Readable nested names**: NOT delivered (cut, see IN 8). Not claimed.
+- **NEP-366 gasless transactions**: NOT used; a plain relayer pays gas.
 - **Intents** would let diaspora donors pay from any chain, but this cannot be tested on testnet.
 
 What would work on any chain: the repair rule itself (reports, jobs, sample vote, two-stage payment). An EVM version with a factory contract, a paymaster and an immutable proxy could do most of it, with less readable names and no address-from-code check. We will not claim that only NEAR can do this. Centrality is moderate; this is the honest assessment.

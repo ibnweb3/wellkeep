@@ -5,9 +5,14 @@
   "license": "MIT",
   "scripts": {
     "cards": "node tools/cards.mjs 30 6",
-    "test": "node --test tests/"
+    "test": "node --test tests/*.test.mjs",
+    "test:offline": "BOREHOLE_OFFLINE=1 node --test tests/*.test.mjs"
   },
   "dependencies": {
     "near-kit": "^0.20.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "wrangler": "^4.161.0"
   }
 }
