@@ -1,0 +1,32 @@
+[package]
+name = "borehole-pool"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Keyless community repair fund for water points, with household one-time-code voting"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk = { version = "5.30.1", default-features = false }
+
+[dev-dependencies]
+near-sdk = { version = "5.30.1", default-features = false, features = ["unit-testing"] }
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true
+strip = true
+
+[features]
+# Only for the off-chain helper in examples/state.rs.
+state-tool = ["near-sdk/non-contract-usage"]
+
+[[example]]
+name = "state"
+required-features = ["state-tool"]

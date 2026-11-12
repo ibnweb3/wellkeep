@@ -1,0 +1,13 @@
+{
+  "name": "borehole",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "cards": "node tools/cards.mjs 30 6",
+    "test": "node --test tests/"
+  },
+  "dependencies": {
+    "near-kit": "^0.20.2"
+  }
+}
