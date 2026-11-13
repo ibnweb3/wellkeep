@@ -619,3 +619,16 @@ document.getElementById("gocheck")?.addEventListener("click", () => {
     }, 700);
   }, 100);
 })();
+
+// Pointer tilt on the hero box (mouse devices only, not for reduced motion).
+(function tilt() {
+  const hero = document.getElementById("hero"), box = document.querySelector("#tilt .callout");
+  if (!hero || !box || !matchMedia("(hover: hover) and (pointer: fine)").matches || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  hero.addEventListener("pointermove", (e) => {
+    const r = hero.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+    box.style.setProperty("--ry", `${(x * 9).toFixed(2)}deg`);
+    box.style.setProperty("--rx", `${(-y * 7).toFixed(2)}deg`);
+  });
+  hero.addEventListener("pointerleave", () => { box.style.setProperty("--ry", "0deg"); box.style.setProperty("--rx", "0deg"); });
+})();
