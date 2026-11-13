@@ -12,9 +12,9 @@ const D = "bh-donor.testnet";
 
 const actions = [
   { AddMechanic: { account: M } },
-  { AddPump: { name: "Demo well 1 - market square" } },
-  { AddPump: { name: "Demo well 2 - primary school" } },
-  { AddPump: { name: "Demo well 3 - health post" } },
+  { AddPump: { name: "Village A - market square" } },
+  { AddPump: { name: "Village A - primary school" } },
+  { AddPump: { name: "Village A - health post" } },
 ];
 const existing = await viewer().view(pool, "get_config", {});
 if (existing.pump_count > 0) throw new Error(`pool already has ${existing.pump_count} pumps: refusing to bootstrap twice`);

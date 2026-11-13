@@ -2,5 +2,10 @@
  "poolId": "0sff927c3b55b7a664a6affcf78f70703bcb327b20",
  "codeHash": "3ecEVdauLBD77PNzxB7VjpeaDhX5wNdpw1iT1HrHdqW7",
  "rpcUrl": "https://test.rpc.fastnear.com",
- "explorer": "https://testnet.nearblocks.io"
+ "explorer": "https://testnet.nearblocks.io",
+ "hiddenPumps": [
+  0,
+  1,
+  2
+ ]
 }

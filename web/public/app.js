@@ -44,7 +44,7 @@ async function load() {
     rpc("query", { request_type: "view_account", finality: "final", account_id: CONFIG.poolId }),
     rpc("block", { finality: "final" }),
   ]);
-  S = { cfg, pumps: pumps.map(([id, p]) => ({ id, ...p })), jobs, ledger, balance: acct.amount, chainNow: BigInt(block.header.timestamp), fetchedAt: Date.now() };
+  S = { cfg, allPumps: pumps.map(([id, p]) => ({ id, ...p })), pumps: pumps.filter(([id]) => !(CONFIG.hiddenPumps || []).includes(id)).map(([id, p]) => ({ id, ...p })), jobs, ledger, balance: acct.amount, chainNow: BigInt(block.header.timestamp), fetchedAt: Date.now() };
   usedCache.clear();
 }
 const nowNs = () => S.chainNow + BigInt(Date.now() - S.fetchedAt) * 1_000_000n;
@@ -202,7 +202,7 @@ async function refresh() {
 // ---------------------------------------------------------------- pages
 function homePage() {
   const cfg = S.cfg;
-  const earmarked = S.pumps.reduce((a, p) => a + BigInt(p.earmark), 0n);
+  const earmarked = S.allPumps.reduce((a, p) => a + BigInt(p.earmark), 0n);
   const free = BigInt(cfg.free);
   const reserved = reservedTotal();
   const p = cfg.params;
@@ -419,6 +419,7 @@ function aboutPage() {
     <li><b>The money is testnet NEAR.</b> Mobile-money cash-out for the mechanic and NEAR Intents top-ups are not built.</li>
     <li><b>Prior art already works.</b> FundiFix pools monthly mobile-money payments and fixes pumps within days. This adds a donor-visible fund that nobody holds.</li>
     <li><b>Not tested with any village.</b> It needs a field pilot.</li>
+    <li><b>Early test pumps are hidden.</b> Pumps 0 to 2 on the chain are earlier test pumps named "Demo well". The contract cannot delete a pump, so this page hides them. The current water points are the fictional "Village A" pumps.</li>
   </ul>`;
 }
 

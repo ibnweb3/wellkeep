@@ -39,7 +39,7 @@ Not real, and labelled as such in the site:
 - **Mobile-money cash-out is not built.** No fiat on-ramp or off-ramp exists in NEAR's docs, and none is faked here.
 - **NEAR Intents top-ups are not built.** Intents has no testnet, so cross-chain giving cannot be shown honestly. The site says so.
 - **The SMS gateway is not built.** The design assumes a feature phone sends the code by SMS; this build uses the browser.
-- The village is fictional: three pumps named "Demo well" and 30 households with generated cards. The sample cards are public (`docs/test-cards.json`) so a reviewer can try the flow; their root is what the chain checks.
+- The village is fictional: three pumps named "Village A - ..." and 30 households (pumps 0 to 2 on the chain are earlier test pumps named "Demo well"; the contract cannot delete pumps, so the site hides them) with generated cards. The sample cards are public (`docs/test-cards.json`) so a reviewer can try the flow; their root is what the chain checks.
 - The hold period is two minutes, for testing. It is a parameter fixed in the pool's starting state.
 - Only the gas-paying relayer is run by this site. Donors and mechanics sign with their own wallets.
 - Wallet signing goes through `@hot-labs/near-connect`. I could not complete a real wallet signature in my own test session, so the donor and mechanic paths are written and wired but not proven end to end by me.
