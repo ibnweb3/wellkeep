@@ -29,9 +29,8 @@ function client(env, which) {
 
 function cleanError(e) {
   const m = String(e?.message || e);
-  const hit = m.match(/panicked(?: at)?[^']*'?([^'\n]*)/i) || m.match(/Smart contract panicked: (.*)/);
-  const text = hit?.[1]?.trim() || m;
-  return text.slice(0, 300);
+  const at = m.indexOf("Smart contract panicked: ");
+  return (at >= 0 ? m.slice(at + "Smart contract panicked: ".length) : m).slice(0, 300);
 }
 
 async function send(near, pool, method, args, deposit) {

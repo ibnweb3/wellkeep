@@ -8,7 +8,7 @@ Built for NEAR HACKATHON. Tracks: NFTs and Real-World Money. This is a prototype
 
 ## Try it (about five minutes)
 
-There is no hosted demo yet; run it locally (a hosted link will be added here once it is deployed):
+Live demo (testnet): https://borehole-water.ibnweb3lab.workers.dev . Or run it locally:
 
 ```bash
 npm install
