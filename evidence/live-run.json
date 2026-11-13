@@ -1,97 +1,98 @@
 {
  "pool": "0sff927c3b55b7a664a6affcf78f70703bcb327b20",
- "ranAt": "2026-11-12T23:54:50.512Z",
+ "ranAt": "2026-11-13T00:09:32.761Z",
  "network": "testnet",
  "log": [
   {
    "step": "reported",
    "pump": 1,
-   "job": 0,
-   "tx": "2XjmYwSFt4Qo9TiNRzTbA5wTEWfy93VQ969Jr9x8aUuj"
+   "job": 4,
+   "tx": "H9LqG9NYS9RKLZDeHRKRZLEPK3EaJNTdCN5S7cxvYpLG"
   },
   {
    "step": "accepted",
-   "job": 0,
+   "job": 4,
    "price": "500000000000000000000000",
-   "tx": "13m2zfoByQWEbuGUgores1qesaHm2J3d1PL63MXCcqmA"
+   "tx": "8ZrxfWoZKzZ7d2aSG28Vj8G4fHA8FfqycVbjn3XbB6x5"
   },
   {
    "step": "fix posted, households drawn at random",
-   "job": 0,
+   "job": 4,
    "asked": [
     15,
-    18,
+    27,
     17,
-    13,
+    22,
+    4,
+    25,
+    6,
     23,
-    21,
-    2,
-    16,
-    27
+    19
    ],
-   "tx": "4SzNtVwN9aQfaV8Lhdc5DKra8USxGhN7caXJZXU7i9sv"
+   "tx": "EcLv9D1YuAoS6hY86PCd79DQbc525S3pPCMoT4V4Webd"
   },
   {
    "step": "village said it works",
-   "job": 0,
+   "job": 4,
    "status": "Approved",
    "paid": "350000000000000000000000",
    "held": "150000000000000000000000",
    "mechanicGainNEAR": 0.35,
-   "lastVoteTx": "GWiPFzy2akAhHHXJEidswsZQbVnTqnx4RJg7F8MEYE88"
+   "lastVoteTx": "2ZP88RvK5zc6ygHaP7KXFnjEtt4cgTXvbFfWozL9hpaU"
   },
   {
    "step": "A released held share",
-   "job": 0,
+   "job": 4,
    "status": "Completed",
    "paid": "500000000000000000000000",
-   "tx": "6TRGhPTApkfRgxgJQPBavftydPdxJmXDFc5RdaDRPsaY"
+   "tx": "Et1deN7J96QqT8vK95nFRMay95Sc63Lx8R43uecxKhQX"
   },
   {
    "step": "reported",
    "pump": 2,
-   "job": 1,
-   "tx": "AUK1x7PGg4nRMiMX1X6KNaadZCueo391ajAJQCpuBfwo"
+   "job": 2,
+   "tx": "ES38R1xeaRYeszR1eh6wX5BDeC1f8xmDJtXMXBmKrqf3"
   },
   {
    "step": "accepted",
-   "job": 1,
+   "job": 2,
    "price": "400000000000000000000000",
-   "tx": "E3UJDNVHjk4hecBf8xHPGfiMyAKBvggS3AyigNUwUyRL"
+   "tx": "EB4NJ1nFTHduLsUcnW4A3TB2cxQ6fPgZvHWYfSMs2Dkm"
   },
   {
    "step": "fix posted, households drawn at random",
-   "job": 1,
+   "job": 2,
    "asked": [
     20,
-    16,
-    7,
-    0,
-    4,
+    21,
+    12,
+    19,
+    29,
+    10,
     26,
-    3,
-    17,
-    1
+    23,
+    1,
+    28
    ],
-   "tx": "eHvBgC1zcesRju34xweTz6T6WfM6PuwzyHhuBBMpbXb"
+   "tx": "1VbVjsewaMtY9wWxN8WKebApX8Q3iBMNAzi4UAWu3Yu"
   },
   {
    "step": "village said it works",
-   "job": 1,
+   "job": 2,
    "status": "Approved",
    "paid": "280000000000000000000000",
    "held": "120000000000000000000000",
    "mechanicGainNEAR": 0.28,
-   "lastVoteTx": "7kGcB7kE8NwYv2wvH6SBYaQRjzBqckBv7nUK3HXspiuX"
+   "lastVoteTx": "Am2t9jeoX915GdgDfgWFr8d81hSFMmy97TXUpEm8en5f"
   },
   {
    "step": "first broken-again report",
-   "job": 1,
+   "job": 2,
    "status": "Approved"
   },
   {
    "step": "second different household reported: held share forfeited",
-   "job": 1,
+   "job": 2,
    "status": "Forfeited",
    "held": "0",
    "returnedToFundYocto": "120000000000000000000000"
@@ -118,8 +119,8 @@
   },
   {
    "step": "refusal-test job cancelled by both signers",
-   "job": 3,
-   "status": "Reported"
+   "job": 6,
+   "status": "Cancelled"
   }
  ]
 }
