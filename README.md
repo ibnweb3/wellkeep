@@ -8,7 +8,7 @@ Built for NEAR HACKATHON. Tracks: NFTs and Real-World Money. This is a prototype
 
 ## Try it (about five minutes)
 
-Live site: see the link in the demo post (a Cloudflare Worker serving this repository). Or run it locally:
+There is no hosted demo yet; run it locally (a hosted link will be added here once it is deployed):
 
 ```bash
 npm install

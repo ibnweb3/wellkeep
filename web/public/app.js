@@ -199,6 +199,8 @@ function homePage() {
   <h1>A repair fund for water points that nobody holds</h1>
   <p class="lead">A donor pays for a borehole; this keeps it working. When a pump breaks, a mechanic fixes it. He is paid only after the villagers say it works, and every payment is public.</p>
 
+  <p><button id="gocheck">Check the fund before anything else</button></p>
+
   <h2>Try it in five steps</h2>
   <ol class="steps card">
     <li><b>Check before you give.</b> Press the check below: it recomputes the fund's address and shows that no one holds a key to it.</li>
@@ -229,7 +231,7 @@ function homePage() {
       .join("") || `<div class="card empty">No water points registered yet.</div>`}
   </div>
 
-  <h2>Check before you give</h2>
+  <h2 id="check">Check before you give</h2>
   <div class="card">
     <p>Nothing here asks you to trust this website. The check reads the chain and recomputes the address itself.</p>
     <button id="runcheck">Run the checks</button>
@@ -253,7 +255,7 @@ function timeline(j) {
     ["Held share released", ["Completed"]],
   ];
   const rank = { Reported: 0, Accepted: 1, Voting: 2, Approved: 3, Completed: 4 };
-  const at = rank[j.status] ?? -1;
+  const at = j.status === "Completed" ? 5 : (rank[j.status] ?? -1); // a finished job has every step done
   return `<ul class="timeline">${steps
     .map(([t], i) => `<li class="${i < at ? "done" : i === at ? "now" : ""}"><span>${esc(t)}</span></li>`)
     .join("")}</ul>`;
@@ -358,11 +360,11 @@ function pumpPage(id) {
         <button id="don-pump-5" class="secondary">0.5 to this pump</button>
         <button id="don-pool-1" class="secondary">0.1 to shared pool</button>
       </div>
-      <div class="msg" id="msg-fund"></div>
+      <div class="msg" id="msg-fund" role="status"></div>
     </div>
     <div class="card">
       ${action}
-      <div class="msg" id="msg"></div>
+      <div class="msg" id="msg" role="status"></div>
     </div>
   </div>
   ${j ? `<h2>Current job</h2>${jobCard(j, true)}` : ""}
@@ -424,6 +426,10 @@ function aboutPage() {
 // ---------------------------------------------------------------- interactions
 function wire(r) {
   document.getElementById("runcheck")?.addEventListener("click", runCheck);
+  document.getElementById("gocheck")?.addEventListener("click", () => {
+    document.getElementById("check")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    runCheck();
+  });
   if (r.name !== "pump") return;
   const id = r.id;
   const msg = document.getElementById("msg");
