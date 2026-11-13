@@ -461,6 +461,7 @@ function aboutPage() {
     <li><b>Votes can be linked to a card.</b> Anyone who knows which card belongs to whom can see who voted what. The chain cannot stop pressure on villagers.</li>
     <li><b>Phones.</b> The SMS path is described, not built. Where there is almost no phone coverage this does not work.</li>
     <li><b>The money is testnet NEAR.</b> Mobile-money cash-out for the mechanic and NEAR Intents top-ups are not built.</li>
+    <li><b>The problem is real, the numbers are not ours.</b> The "about one in four handpumps out of order" line comes from a review of field data from sub-Saharan Africa and Asia-Pacific (<a href="https://waterpointdata.org/wp-content/uploads/2020/11/Functionality-of-handpump-water-supplies.pdf" target="_blank" rel="noopener">Foster and others, Functionality of handpump water supplies</a>). The review itself warns that "functional" is defined differently from source to source, so treat it as an order of magnitude.</li>
     <li><b>Prior art already works.</b> FundiFix pools monthly mobile-money payments and fixes pumps within days. This adds a donor-visible fund that nobody holds.</li>
     <li><b>Not tested with any village.</b> It needs a field pilot.</li>
   </ul>`;

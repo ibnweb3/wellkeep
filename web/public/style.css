@@ -243,3 +243,5 @@ body { overflow-x: clip; }
   .live-dot, .flash { animation: none; }
   .reveal, .tile, .tally, .mbar, .stages li span { transition: none; }
 }
+.callout sup a { color: #b6d8e8; padding: 0 2px; }
+.callout p:last-of-type { margin-bottom: 18px; }
