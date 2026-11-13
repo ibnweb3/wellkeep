@@ -309,3 +309,29 @@ body { overflow-x: clip; }
 .tilt .callout { animation: none; }
 .tilt .callout::after { display: none; }
 @media (prefers-reduced-motion: reduce) { .tilt { animation: none; } }
+
+/* Calm editorial pass (reference: light serif headlines, warm paper, glass panel, pill buttons) */
+:root {
+  --serif: "Newsreader", Georgia, "Iowan Old Style", serif;
+  --sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --bg: #f4eee6;
+  --panel: #fbf8f3;
+  --line: #e2d9cc;
+  --radius: 18px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #12171a; --panel: #1a2125; --line: #2c373c; } }
+body { font-family: var(--sans); background: var(--bg); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 300; letter-spacing: -0.025em; line-height: 1.08; }
+h2 { font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.3rem); }
+.card { border-radius: var(--radius); border-color: var(--line); box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 18px 40px -28px rgba(40,30,15,.35); }
+.pill { border-radius: 999px; font-family: var(--sans); font-weight: 500; }
+.hero h1 { font-size: clamp(2.1rem, 1.3rem + 3.4vw, 3.9rem); font-weight: 300; letter-spacing: -0.03em; line-height: 1.02; }
+.tilt .callout {
+  background: linear-gradient(160deg, rgba(14,26,36,.72), rgba(14,26,36,.52));
+  -webkit-backdrop-filter: blur(14px) saturate(1.1); backdrop-filter: blur(18px) saturate(1.1);
+  border: 1px solid rgba(255,255,255,.3); border-radius: 26px;
+  box-shadow: 0 30px 60px -30px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.35);
+}
+.tilt .callout::before { opacity: .35; }
+.hero .pill:not(.ghost) { background: #fff; color: #14202a; }
+.hero .pill.ghost { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.45); }
