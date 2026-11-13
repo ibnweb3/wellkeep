@@ -168,6 +168,7 @@ function setTabs(name) {
 function render() {
   const r = route();
   setTabs(r.name);
+  document.getElementById("hero").hidden = r.name !== "home";
   const keep = { x: window.scrollX, y: window.scrollY };
   if (r.name === "pump") $main.innerHTML = pumpPage(r.id);
   else if (r.name === "ledger") $main.innerHTML = ledgerPage();
@@ -196,12 +197,7 @@ function homePage() {
   const reserved = reservedTotal();
   const p = cfg.params;
   return `
-  <h1>A repair fund for water points that nobody holds</h1>
-  <p class="lead">A donor pays for a borehole; this keeps it working. When a pump breaks, a mechanic fixes it. He is paid only after the villagers say it works, and every payment is public.</p>
-
-  <p><button id="gocheck">Check the fund before anything else</button></p>
-
-  <h2>Try it in five steps</h2>
+  <h2 class="first">Try it in five steps</h2>
   <ol class="steps card">
     <li><b>Check before you give.</b> Press the check below: it recomputes the fund's address and shows that no one holds a key to it.</li>
     <li><b>Fund it.</b> Open a pump and add testnet NEAR from the demo donor.</li>
@@ -218,7 +214,7 @@ function homePage() {
   </div>
   <p class="muted" style="margin-top:10px">Pool account <a class="mono" href="${explorer(CONFIG.poolId)}" target="_blank" rel="noopener">${esc(CONFIG.poolId)}</a>. It also holds a small storage reserve of NEAR that is not part of the fund (account balance ${near(S.balance, 2)} NEAR).</p>
 
-  <h2>Water points</h2>
+  <h2 id="pumps">Water points</h2>
   <div class="grid cols3">
     ${S.pumps
       .map((pm) => {
@@ -231,6 +227,9 @@ function homePage() {
       .join("") || `<div class="card empty">No water points registered yet.</div>`}
   </div>
 
+  <section class="band" style="--img:url(/img/children-well.jpg)" aria-label="Photograph of children at a hand pump">
+    <div class="wrap"><blockquote>A well is only the start. Keeping it running is the hard part.<footer>That is what this fund pays for, in the open.</footer></blockquote></div>
+  </section>
   <h2 id="check">Check before you give</h2>
   <div class="card">
     <p>Nothing here asks you to trust this website. The check reads the chain and recomputes the address itself.</p>
@@ -426,10 +425,6 @@ function aboutPage() {
 // ---------------------------------------------------------------- interactions
 function wire(r) {
   document.getElementById("runcheck")?.addEventListener("click", runCheck);
-  document.getElementById("gocheck")?.addEventListener("click", () => {
-    document.getElementById("check")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    runCheck();
-  });
   if (r.name !== "pump") return;
   const id = r.id;
   const msg = document.getElementById("msg");
@@ -554,3 +549,8 @@ window.addEventListener("hashchange", render);
   }
   await refresh();
 })();
+
+document.getElementById("gocheck")?.addEventListener("click", () => {
+  document.getElementById("check")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  runCheck();
+});

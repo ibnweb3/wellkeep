@@ -4,7 +4,7 @@ A keyless repair fund for community water points, on NEAR testnet. Fund the repa
 
 **In 30 seconds.** A donor pays for a borehole, then it breaks because nobody has money to fix it. WellKeep is the repair fund that keeps it working, and nobody holds the money. A pump is reported broken with a one-time code from a printed household card. A registered mechanic takes the job. The reporter plus about eight randomly chosen households are asked "does it work now?". If two thirds say yes, the mechanic is paid 70% at once and the other 30% a short time later, unless two different households report the pump broken again. Every report, vote and payment is public. A donor can run one check that proves, from the chain alone, that no key exists for the fund and that its code cannot change.
 
-Built for NEAR HACKATHON. Tracks: NFTs and Real-World Money. This is a prototype on testnet with test money. It has not been tested with any real community.
+Built for NEAR HACKATHON. Tracks: NFTs and Real-World Money. A second entry from the same author, [Cautio](https://github.com/ibnweb3/cautio) (rental deposits in a keyless NEAR account, [live](https://cautio.ibnweb3lab.workers.dev)), uses the same idea of an account that nobody holds a key to. This is a prototype on testnet with test money. It has not been tested with any real community.
 
 ## Try it (about five minutes)
 
@@ -115,7 +115,7 @@ npx wrangler dev                          # needs .dev.vars: RELAY_KEY, MECHANIC
 
 ## AI use disclosure
 
-I built this with Claude Code (Anthropic) as a pair-programming agent: the contract, tests, tooling, web app and this README were written with it. The design (donor-first, household cards, random sample, two-stage payment) was worked out in conversation, and the field-evidence section came from a separate research report that I did not independently verify beyond the peer-reviewed sources. Libraries: `near-sdk` (Rust), `near-kit`, `esbuild`, `wrangler`. No code from before the hackathon window.
+I built this with Claude Code (Anthropic) as a pair-programming agent: the contract, tests, tooling, web app and this README were written with it. The design (donor-first, household cards, random sample, two-stage payment) was worked out in conversation, and the field-evidence section came from a separate research report that I did not independently verify beyond the peer-reviewed sources. Photos in the site are from Wikimedia Commons (credits in the page footer). Libraries: `near-sdk` (Rust), `near-kit`, `esbuild`, `wrangler`. No code from before the hackathon window.
 
 ## License
 
