@@ -1,4 +1,4 @@
-name = "borehole-water"
+name = "wellkeep"
 main = "web/src/worker.js"
 compatibility_date = "2026-11-01"
 compatibility_flags = ["nodejs_compat"]

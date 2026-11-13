@@ -1,14 +1,14 @@
-# Borehole
+# WellKeep
 
-A public repair fund for community water points, on NEAR testnet.
+A keyless repair fund for community water points, on NEAR testnet. Fund the repairs that keep a well giving water after the donor has gone.
 
-**In 30 seconds.** A donor pays for a borehole, then it breaks because nobody has money to fix it. Borehole is the repair fund that keeps it working, and nobody holds the money. A pump is reported broken with a one-time code from a printed household card. A registered mechanic takes the job. The reporter plus about eight randomly chosen households are asked "does it work now?". If two thirds say yes, the mechanic is paid 70% at once and the other 30% a short time later, unless two different households report the pump broken again. Every report, vote and payment is public. A donor can run one check that proves, from the chain alone, that no key exists for the fund and that its code cannot change.
+**In 30 seconds.** A donor pays for a borehole, then it breaks because nobody has money to fix it. WellKeep is the repair fund that keeps it working, and nobody holds the money. A pump is reported broken with a one-time code from a printed household card. A registered mechanic takes the job. The reporter plus about eight randomly chosen households are asked "does it work now?". If two thirds say yes, the mechanic is paid 70% at once and the other 30% a short time later, unless two different households report the pump broken again. Every report, vote and payment is public. A donor can run one check that proves, from the chain alone, that no key exists for the fund and that its code cannot change.
 
 Built for NEAR HACKATHON. Tracks: NFTs and Real-World Money. This is a prototype on testnet with test money. It has not been tested with any real community.
 
 ## Try it (about five minutes)
 
-Live demo (testnet): https://borehole-water.ibnweb3lab.workers.dev . Or run it locally:
+Live demo (testnet): https://wellkeep.ibnweb3lab.workers.dev . Or run it locally:
 
 ```bash
 npm install
@@ -67,7 +67,7 @@ hold ends, no forfeit ─▶ release_held (anyone) ─▶ 30% paid
 
 ## Prior art, and what is different
 
-Pooled maintenance funds paid by mobile money already work. FundiFix in Kenya pools monthly M-PESA payments across communities, verifies repairs with handle sensors, and reports (and a peer-reviewed Kwale study found) about 90% of repairs within three days; I did not re-check the study myself. A Rwanda trial showed sensor-triggered repair beats scheduled visits. Borehole does not replace any of that.
+Pooled maintenance funds paid by mobile money already work. FundiFix in Kenya pools monthly M-PESA payments across communities, verifies repairs with handle sensors, and reports (and a peer-reviewed Kwale study found) about 90% of repairs within three days; I did not re-check the study myself. A Rwanda trial showed sensor-triggered repair beats scheduled visits. WellKeep does not replace any of that.
 
 What is different: the fund is public and keyless, so a donor can see and check where the money goes without trusting an operator, a committee treasurer or us. I found no independent blockchain water-maintenance pilot; one 2020 IBM/SweetSense blockchain pilot is cited without a known outcome.
 

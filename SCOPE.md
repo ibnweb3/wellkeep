@@ -1,4 +1,4 @@
-# SCOPE: Borehole (community water-point repair fund on NEAR)
+# SCOPE: WellKeep (community water-point repair fund on NEAR)
 
 Status: approved by the owner 2026-11-12; amended 2026-11-13 with what actually got built (see "Changes made while building"). Development ends 2026-11-14 23:59 UTC.
 Tracks: NFTs + Real-World Money.
