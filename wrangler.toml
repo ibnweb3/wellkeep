@@ -9,6 +9,6 @@ binding = "ASSETS"
 run_worker_first = ["/api/*"]
 
 [vars]
-POOL_ID = "0sff927c3b55b7a664a6affcf78f70703bcb327b20"
+POOL_ID = "0s4123b90f113c99ea1492d8ef8e658f0890153193"
 RELAY_ID = "bh-relay.testnet"
 RPC_URL = "https://test.rpc.fastnear.com"

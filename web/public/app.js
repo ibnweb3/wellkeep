@@ -213,7 +213,7 @@ function homePage() {
     <li><b>Fund it.</b> Connect your own NEAR testnet wallet and give to a pump or to the shared pool.</li>
     <li><b>Report.</b> A household types its number and a code from its printed card to report the pump broken. A job opens.</li>
     <li><b>Fix and check.</b> A registered mechanic signs in with their own wallet, accepts and posts the fix. The reporter and ${p.sample_size} random households are asked; ${p.min_replies} replies are needed and two thirds must say it works.</li>
-    <li><b>Pay and hold.</b> ${p.first_pct}% is paid at once. The rest is held for ${fmtDur(BigInt(p.hold_ns))} (set short on this testnet build) and released unless two households report it broken again.</li>
+    <li><b>Pay and hold.</b> ${p.first_pct}% is paid at once. The rest is held for ${fmtDur(BigInt(p.hold_ns))} (short on this testnet build so it can be watched) and released unless two households report it broken again.</li>
   </ol>
 
   <h2>The fund</h2>
@@ -419,7 +419,6 @@ function aboutPage() {
     <li><b>The money is testnet NEAR.</b> Mobile-money cash-out for the mechanic and NEAR Intents top-ups are not built.</li>
     <li><b>Prior art already works.</b> FundiFix pools monthly mobile-money payments and fixes pumps within days. This adds a donor-visible fund that nobody holds.</li>
     <li><b>Not tested with any village.</b> It needs a field pilot.</li>
-    <li><b>Early test pumps are hidden.</b> Pumps 0 to 2 on the chain are earlier test pumps named "Demo well". The contract cannot delete a pump, so this page hides them. The current water points are the fictional "Village A" pumps.</li>
   </ul>`;
 }
 

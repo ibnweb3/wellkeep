@@ -1,13 +1,13 @@
 {
- "checkedAt": "2026-11-13T00:09:40.403Z",
+ "checkedAt": "2026-11-13T08:21:31.334Z",
  "network": "testnet",
- "poolId": "0sff927c3b55b7a664a6affcf78f70703bcb327b20",
+ "poolId": "0s4123b90f113c99ea1492d8ef8e658f0890153193",
  "results": [
   {
    "id": "account",
    "title": "The account exists on-chain",
    "ok": true,
-   "detail": "0sff927c3b55b7a664a6affcf78f70703bcb327b20"
+   "detail": "0s4123b90f113c99ea1492d8ef8e658f0890153193"
   },
   {
    "id": "keys",
@@ -37,7 +37,7 @@
    "id": "address",
    "title": "The address is derived from exactly this code and this starting state",
    "ok": true,
-   "detail": "recomputed here: 0sff927c3b55b7a664a6affcf78f70703bcb327b20"
+   "detail": "recomputed here: 0s4123b90f113c99ea1492d8ef8e658f0890153193"
   },
   {
    "id": "rules",

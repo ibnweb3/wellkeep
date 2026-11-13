@@ -26,7 +26,7 @@ await build({
 const pub = JSON.parse(readFileSync("evidence/publish.json", "utf8"));
 writeFileSync(
   "web/public/config.json",
-  JSON.stringify({ poolId: pub.poolId, codeHash: pub.codeHash, rpcUrl: "https://test.rpc.fastnear.com", explorer: "https://testnet.nearblocks.io", hiddenPumps: [0, 1, 2] }, null, 1),
+  JSON.stringify({ poolId: pub.poolId, codeHash: pub.codeHash, rpcUrl: "https://test.rpc.fastnear.com", explorer: "https://testnet.nearblocks.io" }, null, 1),
 );
 // keep the Worker's pool id in step with the published pool
 const toml = readFileSync("wrangler.toml", "utf8").replace(/POOL_ID = ".*"/, `POOL_ID = "${pub.poolId}"`);
