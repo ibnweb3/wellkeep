@@ -1,0 +1,21 @@
+[package]
+name = "wellkeep-vault"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Keyless vault account that holds one water point's repair money. Only its parent pool can make it pay."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sys = "0.2"
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true
+strip = true
