@@ -5,11 +5,12 @@ const $live = document.getElementById("live");
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const Y = 10n ** 24n;
 
-let CONFIG, CARDS, LEVELS, SLOTS;
+let CONFIG, LEVELS, SLOTS, W = null;
+let walletAcct = null;
+let isMech = false;
 let S = { cfg: null, pumps: [], jobs: [], ledger: [], balance: "0", chainNow: 0n, fetchedAt: 0 };
 const usedCache = new Map();
 let busy = false;
-let desk = { hh: null };
 let lastChecks = null; // survives the periodic re-render
 
 // ---------------------------------------------------------------- chain reads (public RPC, direct)
@@ -98,35 +99,35 @@ function reservedTotal() {
   }, 0n);
 }
 
-// ---------------------------------------------------------------- cards (demo: public on purpose)
-async function slotUsed(hh, slot) {
-  const k = `${hh}:${slot}`;
-  if (usedCache.has(k)) return usedCache.get(k);
-  const v = await view("is_slot_used", { hh, slot });
-  usedCache.set(k, v);
-  return v;
+// ---------------------------------------------------------------- household cards (typed in by the household)
+function readCard(prefix, action) {
+  const hh = Number(document.getElementById(prefix + "-hh").value);
+  const slot = Number(document.getElementById(prefix + "-slot").value) - 1;
+  const code = document.getElementById(prefix + "-code").value.trim().toUpperCase();
+  if (!Number.isInteger(hh) || hh < 0 || hh >= S.cfg.total_households) return { error: `Household number must be 0 to ${S.cfg.total_households - 1}.` };
+  if (!code) return { error: "Type the code from the card." };
+  return { hh, cred: credential(LEVELS, SLOTS, hh, slot, action, code) };
 }
-async function nextSlot(hh) {
-  for (let s = 0; s < SLOTS; s++) if (!(await slotUsed(hh, s))) return s;
-  return null;
-}
-function codeFor(hh, slot, action) {
-  const row = CARDS.cards[hh].rows[slot];
-  return action === ACTIONS.report ? row.report : action === ACTIONS.yes ? row.yes : row.no;
-}
-function credFor(hh, slot, action) {
-  return credential(LEVELS, SLOTS, hh, slot, action, codeFor(hh, slot, action));
+function cardFields(prefix, codeLabel) {
+  const rows = Array.from({ length: SLOTS }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join("");
+  return `<div class="row fields">
+    <label>Household number<input id="${prefix}-hh" type="number" min="0" max="${S.cfg.total_households - 1}" inputmode="numeric" autocomplete="off" spellcheck="false" required></label>
+    <label>Card row<select id="${prefix}-slot">${rows}</select></label>
+    <label>${esc(codeLabel)}<input id="${prefix}-code" type="text" autocomplete="off" spellcheck="false" autocapitalize="characters" required></label>
+  </div>`;
 }
 
-// ---------------------------------------------------------------- server calls (relayer + demo accounts)
+// ---------------------------------------------------------------- server calls (relayer only)
 async function post(path, body) {
   const r = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   return r.json();
 }
+const lastMsg = {}; // survives the re-render that follows every action
 function say(el, text, kind = "") {
   if (el) {
     el.className = `msg ${kind}`;
     el.innerHTML = text;
+    if (el.id) lastMsg[el.id] = { text, kind };
   }
   $live.textContent = String(text).replace(/<[^>]+>/g, "");
 }
@@ -140,7 +141,9 @@ async function run(msgEl, label, fn) {
     if (out && out.ok === false) say(msgEl, `Not accepted: ${esc(out.error)}`, "err");
     else say(msgEl, `${esc(label)}: done.${out?.hash ? txLink(out.hash) : ""}`, "good");
   } catch (e) {
-    say(msgEl, `Failed: ${esc(e.message || e)}`, "err");
+    const m = String(e.message || e);
+    const panic = m.match(/Smart contract panicked: ([^"\n]+)/);
+    say(msgEl, `Failed: ${esc(panic ? panic[1] : m)}`, "err");
   } finally {
     busy = false;
     await refresh();
@@ -175,6 +178,13 @@ function render() {
   else if (r.name === "about") $main.innerHTML = aboutPage();
   else $main.innerHTML = homePage();
   wire(r);
+  for (const id of ["msg", "msg-fund"]) {
+    const el = document.getElementById(id);
+    if (el && lastMsg[id]) {
+      el.className = `msg ${lastMsg[id].kind}`;
+      el.innerHTML = lastMsg[id].text;
+    }
+  }
   window.scrollTo(keep.x, keep.y);
 }
 
@@ -197,13 +207,13 @@ function homePage() {
   const reserved = reservedTotal();
   const p = cfg.params;
   return `
-  <h2 class="first">Try it in five steps</h2>
+  <h2 class="first">How it works</h2>
   <ol class="steps card">
     <li><b>Check before you give.</b> Press the check below: it recomputes the fund's address and shows that no one holds a key to it.</li>
-    <li><b>Fund it.</b> Open a pump and add testnet NEAR from the demo donor.</li>
-    <li><b>Report.</b> Pick a household and use a code from its card to report the pump broken. A job opens.</li>
-    <li><b>Fix and check.</b> The demo mechanic accepts and posts the fix. The reporter and ${p.sample_size} random households are asked; ${p.min_replies} replies are needed and two thirds must say it works.</li>
-    <li><b>Pay and hold.</b> ${p.first_pct}% is paid at once. The rest is held for ${fmtDur(BigInt(p.hold_ns))} (shortened for the demo) and released unless two households report it broken again.</li>
+    <li><b>Fund it.</b> Connect your own NEAR testnet wallet and give to a pump or to the shared pool.</li>
+    <li><b>Report.</b> A household types its number and a code from its printed card to report the pump broken. A job opens.</li>
+    <li><b>Fix and check.</b> A registered mechanic signs in with their own wallet, accepts and posts the fix. The reporter and ${p.sample_size} random households are asked; ${p.min_replies} replies are needed and two thirds must say it works.</li>
+    <li><b>Pay and hold.</b> ${p.first_pct}% is paid at once. The rest is held for ${fmtDur(BigInt(p.hold_ns))} (set short on this testnet build) and released unless two households report it broken again.</li>
   </ol>
 
   <h2>The fund</h2>
@@ -295,21 +305,28 @@ function pumpPage(id) {
   const p = S.cfg.params;
   const maxPrice = near(p.max_price);
 
+  const mechNote = walletAcct
+    ? isMech
+      ? `<p class="muted">Signed in as <span class="mono">${esc(walletAcct)}</span>, a registered mechanic.</p>`
+      : `<p class="muted">Signed in as <span class="mono">${esc(walletAcct)}</span>, which is not a registered mechanic. The contract will refuse. Both signers must register an account first.</p>`
+    : `<p class="muted">Connect your wallet (top right) with a registered mechanic account.</p>`;
   let action = "";
   if (!j) {
-    action = `<h3>This pump is working. Report it broken</h3>
+    action = `<h3>Report this pump broken</h3>
       <p class="muted">A household reports with a one-time code from its printed card. The relayer submits it and pays the fee; the household holds no NEAR.</p>
-      ${deskControls()}
+      ${cardFields("rep", "Code (column: Report broken)")}
       <button id="act-report">Report broken</button>`;
   } else if (j.status === "Reported") {
-    action = `<h3>Next: the mechanic takes the job</h3>
-      <p class="muted">This is a demo mechanic account operated by this page. In real use the mechanic signs with their own key. The price is reserved from the fund (earmark first), capped at ${maxPrice} NEAR.</p>
+    action = `<h3>Next: a mechanic takes the job</h3>
+      <p class="muted">The price is reserved from the fund (earmark first), capped at ${maxPrice} NEAR.</p>
+      ${mechNote}
       <label>Quote (NEAR)<input id="quote" type="number" autocomplete="off" spellcheck="false" min="0.01" max="${maxPrice}" step="0.01" value="0.5" inputmode="decimal"></label>
-      <p><button id="act-accept">Accept as demo mechanic</button></p>`;
+      <p><button id="act-accept">Accept the job</button></p>`;
   } else if (j.status === "Accepted") {
     action = `<h3>Next: the mechanic says it is fixed</h3>
       <p class="muted">Posting the fix draws ${p.sample_size} random households (plus the reporters) to be asked whether the pump works.</p>
-      <button id="act-fix">Post the fix as demo mechanic</button>`;
+      ${mechNote}
+      <button id="act-fix">Post the fix</button>`;
   } else if (j.status === "Voting") {
     const replied = new Set([...j.yes, ...j.no]);
     const pending = j.eligible.filter((h) => !replied.has(h));
@@ -317,21 +334,12 @@ function pumpPage(id) {
     const needed = Math.min(p.min_replies, j.eligible.length);
     const late = nowNs() > windowEnd && j.yes.length + j.no.length < needed;
     action = `<h3>Village check</h3>
-      <p class="muted">Only the asked households can vote, and each code works once. Two thirds of the replies must say the pump works.</p>
-      <label>Household
-        <select id="voter">${pending.map((h) => `<option value="${h}">hh-${h}</option>`).join("") || "<option value=''>everyone has replied</option>"}</select>
-      </label>
+      <p class="muted">Only the asked households can vote, and each code works once. Two thirds of the replies must say the pump works. Still to reply: ${pending.length ? pending.map((h) => "hh-" + h).join(", ") : "nobody"}.</p>
+      ${cardFields("vote", "Code (column: It works, or Still broken)")}
       <div class="row" style="margin-top:10px">
-        <button id="act-yes" ${pending.length ? "" : "disabled"}>Works</button>
-        <button id="act-no" class="secondary" ${pending.length ? "" : "disabled"}>Still broken</button>
+        <button id="act-yes">It works</button>
+        <button id="act-no" class="secondary">Still broken</button>
       </div>
-      <details><summary>Demo shortcut: tap for the asked households</summary>
-        <p class="muted">Each tap is a real on-chain vote with a real card code, sent one after another. Clearly simulated: nobody is actually asked.</p>
-        <div class="row">
-          <button id="sim-yes" class="secondary" ${pending.length ? "" : "disabled"}>All say it works</button>
-          <button id="sim-no" class="secondary" ${pending.length ? "" : "disabled"}>All say still broken</button>
-        </div>
-      </details>
       ${late ? `<p><button id="act-redraw" class="secondary">Too few replied in time: ask more households</button></p>` : ""}`;
   } else if (j.status === "Approved") {
     const end = BigInt(j.approved_ns) + BigInt(p.hold_ns);
@@ -340,10 +348,10 @@ function pumpPage(id) {
       <p class="muted">If two different households report it broken again before the hold ends, the held share goes back to the fund instead.</p>
       ${due ? `<button id="act-release">Release the held share to the mechanic</button>` : `<p>Not yet: <span class="num" data-countdown="${end}">${fmtDur(end - nowNs())}</span> left.</p>`}
       <h3 style="margin-top:18px">Or: it broke again</h3>
-      ${deskControls()}
+      ${cardFields("rep", "Code (column: Report broken)")}
       <button id="act-report" class="danger">Report broken again</button>`;
   } else if (j.status === "Disputed") {
-    action = `<p>This job needs both signers to cancel it. That is an admin step outside this demo page.</p>`;
+    action = `<p>This job needs both signers to cancel it. That is an admin step done outside this page.</p>`;
   }
 
   return `<p><a href="#/">&larr; All water points</a></p>
@@ -353,11 +361,11 @@ function pumpPage(id) {
   <div class="grid cols2">
     <div class="card">
       <h3>Add funds</h3>
-      <p class="muted">Testnet NEAR from a demo donor account. Giving from another chain through NEAR Intents is not available here: Intents has no testnet, so that part is not built.</p>
-      <div class="row">
-        <button id="don-pump-1" class="secondary">0.1 to this pump</button>
-        <button id="don-pump-5" class="secondary">0.5 to this pump</button>
-        <button id="don-pool-1" class="secondary">0.1 to shared pool</button>
+      <p class="muted">${walletAcct ? `Giving from <span class="mono">${esc(walletAcct)}</span> (testnet NEAR).` : "Connect your NEAR testnet wallet (top right) to give. You sign the payment yourself; this site never holds your key."} Giving from another chain through NEAR Intents is not built: Intents has no testnet.</p>
+      <label>Amount (NEAR)<input id="don-amt" type="number" min="0.1" step="0.1" value="1" inputmode="decimal" autocomplete="off"></label>
+      <div class="row" style="margin-top:10px">
+        <button id="don-pump" class="secondary">Give to this pump</button>
+        <button id="don-pool" class="secondary">Give to shared pool</button>
       </div>
       <div class="msg" id="msg-fund" role="status"></div>
     </div>
@@ -368,14 +376,6 @@ function pumpPage(id) {
   </div>
   ${j ? `<h2>Current job</h2>${jobCard(j, true)}` : ""}
   ${history.length ? `<h2>History</h2><div class="grid cols2">${history.map((x) => jobCard(x, false)).join("")}</div>` : ""}`;
-}
-
-function deskControls() {
-  const opts = [];
-  for (let h = 0; h < S.cfg.total_households; h++) opts.push(`<option value="${h}" ${desk.hh === h ? "selected" : ""}>hh-${h}</option>`);
-  return `<label>Household card<select id="hh">${opts.join("")}</select></label>
-  <details><summary>Show this household's printed card</summary><div id="cardview" class="muted">Loading card...</div></details>
-  <p></p>`;
 }
 
 function ledgerPage() {
@@ -416,7 +416,7 @@ function aboutPage() {
     <li><b>Cards can be bought or stolen.</b> Keep each payout smaller than the cost of buying enough codes.</li>
     <li><b>Votes can be linked to a card.</b> Anyone who knows which card belongs to whom can see who voted what. The chain cannot stop pressure on villagers.</li>
     <li><b>Phones.</b> The SMS path is described, not built. Where there is almost no phone coverage this does not work.</li>
-    <li><b>Money in and out is simulated.</b> The money is testnet NEAR. Mobile-money cash-out for the mechanic and NEAR Intents top-ups are not built.</li>
+    <li><b>The money is testnet NEAR.</b> Mobile-money cash-out for the mechanic and NEAR Intents top-ups are not built.</li>
     <li><b>Prior art already works.</b> FundiFix pools monthly mobile-money payments and fixes pumps within days. This adds a donor-visible fund that nobody holds.</li>
     <li><b>Not tested with any village.</b> It needs a field pilot.</li>
   </ul>`;
@@ -429,77 +429,40 @@ function wire(r) {
   const id = r.id;
   const msg = document.getElementById("msg");
   const fmsg = document.getElementById("msg-fund");
-  const donate = (pump, amount) => run(fmsg, `Adding ${amount} NEAR`, () => post("/api/donate", { pump, amount }));
-  document.getElementById("don-pump-1")?.addEventListener("click", () => donate(id, "0.1"));
-  document.getElementById("don-pump-5")?.addEventListener("click", () => donate(id, "0.5"));
-  document.getElementById("don-pool-1")?.addEventListener("click", () => donate(null, "0.1"));
-
-  const hhSel = document.getElementById("hh");
-  if (hhSel) {
-    if (desk.hh === null) desk.hh = Math.floor(Math.random() * S.cfg.total_households);
-    hhSel.value = String(desk.hh);
-    hhSel.addEventListener("change", () => {
-      desk.hh = Number(hhSel.value);
-      showCard();
+  const donate = (pump) =>
+    run(fmsg, "Giving", () => {
+      const amt = Number(document.getElementById("don-amt").value);
+      if (!(amt >= 0.1)) return { ok: false, error: "The smallest gift is 0.1 NEAR." };
+      return W.callPool(CONFIG.poolId, "fund", { pump }, toYocto(amt).toString());
     });
-    document.querySelector("details summary")?.parentElement?.addEventListener("toggle", showCard);
-    showCard();
-  }
-  document.getElementById("act-report")?.addEventListener("click", () =>
-    run(msg, `Household hh-${desk.hh} reports the pump broken`, async () => {
-      const slot = await nextSlot(desk.hh);
-      if (slot === null) return { ok: false, error: "this card has no unused codes left (re-issue is a signer action, not in this demo)" };
-      return relay("report_broken", { pump: id, cred: credFor(desk.hh, slot, ACTIONS.report) });
-    }),
-  );
+  document.getElementById("don-pump")?.addEventListener("click", () => donate(id));
+  document.getElementById("don-pool")?.addEventListener("click", () => donate(null));
+
   const pm = S.pumps.find((x) => x.id === id);
   const j = pm && pumpState(pm).job;
-  document.getElementById("act-accept")?.addEventListener("click", () =>
-    run(msg, "Demo mechanic accepts the job", () => {
-      const price = toYocto(document.getElementById("quote").value);
-      return post("/api/mechanic", { action: "accept_job", job: j.id, price: price.toString() });
+  document.getElementById("act-report")?.addEventListener("click", () =>
+    run(msg, "Reporting the pump broken", async () => {
+      const c = readCard("rep", ACTIONS.report);
+      if (c.error) return { ok: false, error: c.error };
+      return relay("report_broken", { pump: id, cred: c.cred });
     }),
   );
-  document.getElementById("act-fix")?.addEventListener("click", () => run(msg, "Demo mechanic posts the fix", () => post("/api/mechanic", { action: "post_fix", job: j.id })));
-  const voteAs = async (hh, works) => {
-    const slot = await nextSlot(hh);
-    if (slot === null) return { ok: false, error: `hh-${hh} has no unused codes left` };
-    return relay("vote", { job: j.id, works, cred: credFor(hh, slot, works ? ACTIONS.yes : ACTIONS.no) });
+  document.getElementById("act-accept")?.addEventListener("click", () =>
+    run(msg, "Accepting the job", () => {
+      const price = toYocto(document.getElementById("quote").value);
+      return W.callPool(CONFIG.poolId, "accept_job", { job: j.id, price: price.toString() });
+    }),
+  );
+  document.getElementById("act-fix")?.addEventListener("click", () => run(msg, "Posting the fix", () => W.callPool(CONFIG.poolId, "post_fix", { job: j.id })));
+  const voteAs = async (works) => {
+    const c = readCard("vote", works ? ACTIONS.yes : ACTIONS.no);
+    if (c.error) return { ok: false, error: c.error };
+    return relay("vote", { job: j.id, works, cred: c.cred });
   };
-  document.getElementById("act-yes")?.addEventListener("click", () => run(msg, "Vote: it works", () => voteAs(Number(document.getElementById("voter").value), true)));
-  document.getElementById("act-no")?.addEventListener("click", () => run(msg, "Vote: still broken", () => voteAs(Number(document.getElementById("voter").value), false)));
-  const sim = (works) =>
-    run(msg, works ? "Asked households say it works" : "Asked households say still broken", async () => {
-      const replied = new Set([...j.yes, ...j.no]);
-      for (const hh of j.eligible.filter((h) => !replied.has(h))) {
-        say(msg, `hh-${hh} votes...`);
-        const out = await voteAs(hh, works);
-        if (out.ok === false) {
-          // after the verdict is reached further votes are refused; that is expected, not an error
-          if (/not being voted/i.test(out.error)) return { ok: true };
-          return out;
-        }
-      }
-      return { ok: true };
-    });
-  document.getElementById("sim-yes")?.addEventListener("click", () => sim(true));
-  document.getElementById("sim-no")?.addEventListener("click", () => sim(false));
+  document.getElementById("act-yes")?.addEventListener("click", () => run(msg, "Vote: it works", () => voteAs(true)));
+  document.getElementById("act-no")?.addEventListener("click", () => run(msg, "Vote: still broken", () => voteAs(false)));
   document.getElementById("act-redraw")?.addEventListener("click", () => run(msg, "Asking more households", () => relay("redraw_sample", { job: j.id })));
   document.getElementById("act-release")?.addEventListener("click", () => run(msg, "Releasing the held share", () => relay("release_held", { job: j.id })));
-}
-
-async function showCard() {
-  const el = document.getElementById("cardview");
-  if (!el || desk.hh === null) return;
-  const hh = desk.hh;
-  const rows = [];
-  for (let s = 0; s < SLOTS; s++) {
-    const used = await slotUsed(hh, s);
-    const c = CARDS.cards[hh].rows[s];
-    rows.push(`<div class="head">Use ${s + 1}</div>` + [c.report, c.yes, c.no].map((code) => `<div class="cell ${used ? "used" : ""}">${esc(code)}</div>`).join(""));
-  }
-  el.innerHTML = `<p>Printed card for hh-${hh}. In real life each code is under a scratch-off patch; scratching one reveals only that one. Struck-through codes are spent on-chain.</p>
-    <div class="cardgrid"><div></div><div class="head">Report broken</div><div class="head">It works</div><div class="head">Still broken</div>${rows.join("")}</div>`;
 }
 
 async function runCheck() {
@@ -532,15 +495,17 @@ setInterval(() => {
   });
 }, 1000);
 setInterval(() => {
-  if (!busy && document.visibilityState === "visible" && !document.activeElement?.matches("select, input") && !document.querySelector("details[open]")) refresh();
+  if (!busy && document.visibilityState === "visible" && !document.activeElement?.matches("select, input, textarea") && !document.querySelector("details[open]")) refresh();
 }, 15000);
-window.addEventListener("hashchange", render);
+window.addEventListener("hashchange", () => {
+  for (const k in lastMsg) delete lastMsg[k];
+  render();
+});
 
 (async function boot() {
   try {
     CONFIG = await (await fetch("/config.json")).json();
-    const [cards, leaves] = await Promise.all([fetch("/demo/cards.json").then((r) => r.json()), fetch("/demo/leaves.json").then((r) => r.json())]);
-    CARDS = cards;
+    const leaves = await fetch("/demo/leaves.json").then((r) => r.json());
     SLOTS = leaves.slots;
     LEVELS = await buildLevels(leaves.leaves.map(fromHex));
   } catch (e) {
@@ -548,7 +513,37 @@ window.addEventListener("hashchange", render);
     return;
   }
   await refresh();
+  initWallet();
 })();
+
+async function initWallet() {
+  const btn = document.getElementById("wallet-btn");
+  try {
+    W = await import("/wallet-bundle.js");
+    await W.init();
+  } catch (e) {
+    btn.textContent = "Wallet unavailable";
+    btn.disabled = true;
+    return;
+  }
+  W.onAccount(async (acct) => {
+    walletAcct = acct;
+    isMech = false;
+    if (acct) {
+      btn.textContent = `${short(acct)} (disconnect)`;
+      try { isMech = await view("is_mechanic", { account: acct }); } catch { /* leave false */ }
+    } else btn.textContent = "Connect wallet";
+    if (!busy && S.cfg) render();
+  });
+  btn.addEventListener("click", async () => {
+    try {
+      if (walletAcct) await W.disconnect();
+      else await W.connect();
+    } catch (e) {
+      say(null, `Wallet: ${e.message || e}`);
+    }
+  });
+}
 
 document.getElementById("gocheck")?.addEventListener("click", () => {
   document.getElementById("check")?.scrollIntoView({ behavior: "smooth", block: "start" });

@@ -175,3 +175,7 @@ h2.first { margin-top: 0.4em; }
 
 body { overflow-x: clip; }
 .pill { text-decoration: none; text-align: center; }
+.pill.small { padding: 6px 14px; font-size: 0.9rem; background: transparent; color: #fff; border-color: rgba(255,255,255,0.6); }
+.fields { align-items: end; margin-bottom: 10px; }
+.fields label { flex: 1 1 120px; }
+.top-in .pill.small { margin-left: auto; }

@@ -8,20 +8,21 @@ Built for NEAR HACKATHON. Tracks: NFTs and Real-World Money. A second entry from
 
 ## Try it (about five minutes)
 
-Live demo (testnet): https://wellkeep.ibnweb3lab.workers.dev . Or run it locally:
+Live (testnet): https://wellkeep.ibnweb3lab.workers.dev . Or run it locally:
 
 ```bash
 npm install
-npx wrangler dev          # needs .dev.vars with the three demo keys, see "Run it yourself"
+npx wrangler dev          # needs .dev.vars with RELAY_KEY (a testnet key), see "Run it yourself"
 ```
 
-Then, in the page:
+Every role acts as itself. Nothing is played for you by the page:
 
-1. **Check before you give.** On the overview page press "Run the checks". Seven checks run in your browser against the public RPC. See seven PASS lines.
-2. **Fund.** Open a water point and press "0.5 to this pump". See the earmark grow and a "Funds added" line in the Public ledger.
-3. **Report.** On a working pump choose a household and press "Report broken". See the pump turn to "Reported broken" and a job appear. The relayer paid the fee; the household holds no NEAR.
-4. **Fix and check.** Press "Accept as demo mechanic", then "Post the fix". See which households were drawn. Open the demo shortcut and press "All say it works". See "Fixed, 30% on hold", with 70% of the quote paid and 30% held.
-5. **Hold and release.** Wait for the countdown (two minutes, shortened for the demo), then press "Release the held share". Or press "Report broken again" from two different households before it ends and watch the held share go back to the fund.
+1. **Check before you give.** Press "Run the checks". Seven checks run in your browser against the public RPC.
+2. **Give (donor).** Press "Connect wallet" and choose a NEAR testnet wallet. Open a water point, enter an amount and give. You sign the payment yourself. See the ledger line.
+3. **Report (household).** Open a working pump, type a household number, a card row and the code from that household's card, then press "Report broken". The relayer pays the fee; the household holds no NEAR. Sample cards for the fictional village are in `docs/test-cards.json` (testnet only; each code works once).
+4. **Fix (mechanic).** A mechanic signs in with their own wallet. The account must first be registered by both signers: `node tools/admin.mjs add-mechanic <account.testnet>`. The mechanic accepts the job and posts the fix.
+5. **Check (village).** The asked households each type their number and a code from the "It works" or "Still broken" column. At least five replies and two thirds "works" pays the mechanic 70%.
+6. **Hold and release.** The rest is held (two minutes on this testnet build; it is a contract parameter, so changing it needs a new code publish). Anyone can press "Release" afterwards, or two different households report "broken again" and the held share goes back to the fund.
 
 ## What is on-chain and what is not
 
@@ -37,8 +38,11 @@ Not real, and labelled as such in the site:
 - The money is **testnet NEAR**. Nothing here touches mainnet.
 - **Mobile-money cash-out is not built.** No fiat on-ramp or off-ramp exists in NEAR's docs, and none is faked here.
 - **NEAR Intents top-ups are not built.** Intents has no testnet, so cross-chain giving cannot be shown honestly. The site says so.
-- **The SMS gateway is not built.** The design assumes a feature phone sends the code by SMS; the demo uses the browser.
-- The mechanic, donor and household "taps" in the demo are operated by this page through throwaway testnet accounts. The demo cards are public on purpose, so anyone can try the flow.
+- **The SMS gateway is not built.** The design assumes a feature phone sends the code by SMS; this build uses the browser.
+- The village is fictional: three pumps named "Demo well" and 30 households with generated cards. The sample cards are public (`docs/test-cards.json`) so a reviewer can try the flow; their root is what the chain checks.
+- The hold period is two minutes, for testing. It is a parameter fixed in the pool's starting state.
+- Only the gas-paying relayer is run by this site. Donors and mechanics sign with their own wallets.
+- Wallet signing goes through `@hot-labs/near-connect`. I could not complete a real wallet signature in my own test session, so the donor and mechanic paths are written and wired but not proven end to end by me.
 
 ## How it works
 
@@ -74,7 +78,7 @@ What is different: the fund is public and keyless, so a donor can see and check 
 ## Honest limits
 
 - **A vote is not proof the pump works.** It records that households said so. A sensor is stronger; this is the cheap fallback where sensors are not affordable.
-- **The household roll is a one-time trust point.** Two independent signers enrol it. If both are dishonest they can pad it. (In this demo both signers are accounts I control.)
+- **The household roll is a one-time trust point.** Two independent signers enrol it. If both are dishonest they can pad it. (On this testnet build both signers are accounts I control.)
 - **Cards can be bought or stolen.** Keep each payout below the cost of buying enough codes.
 - **Votes are linkable to a card.** Anyone who knows which card is whose can see how it voted. The chain cannot stop pressure on villagers.
 - **A held share can be denied by two dishonest households.** Two reports forfeit it. The mechanic has no appeal in this version.
@@ -110,7 +114,7 @@ node tools/bootstrap.mjs
 
 # the site
 node tools/sync-web.mjs                   # bundles the verifier, copies evidence
-npx wrangler dev                          # needs .dev.vars: RELAY_KEY, MECHANIC_KEY, DONOR_KEY (testnet keys)
+npx wrangler dev                          # needs .dev.vars: RELAY_KEY (a testnet key)
 ```
 
 ## AI use disclosure

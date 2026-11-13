@@ -13,6 +13,16 @@ await build({
   target: "es2022",
   logLevel: "warning",
 });
+await build({
+  entryPoints: ["web/src/wallet.js"],
+  bundle: true,
+  format: "esm",
+  outfile: "web/public/wallet-bundle.js",
+  minify: true,
+  target: "es2022",
+  logLevel: "warning",
+  define: { "process.env.NODE_ENV": '"production"' },
+});
 const pub = JSON.parse(readFileSync("evidence/publish.json", "utf8"));
 writeFileSync(
   "web/public/config.json",
