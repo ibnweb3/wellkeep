@@ -1,4 +1,5 @@
 import { buildLevels, credential, fromHex, ACTIONS } from "/merkle.js";
+import { mountWatch } from "/watch.js";
 
 const $main = document.getElementById("main");
 const $live = document.getElementById("live");
@@ -11,6 +12,7 @@ let isMech = false;
 let S = { cfg: null, pumps: [], jobs: [], ledger: [], balance: "0", chainNow: 0n, fetchedAt: 0 };
 const usedCache = new Map();
 let busy = false;
+let lastRoute = null;
 let lastChecks = null; // survives the periodic re-render
 
 // ---------------------------------------------------------------- chain reads (public RPC, direct)
@@ -65,9 +67,10 @@ const short = (id) => (id.length > 24 ? `${id.slice(0, 10)}...${id.slice(-6)}` :
 
 function fmtDur(ns) {
   let s = Math.max(0, Math.ceil(Number(ns) / 1e9));
-  const m = Math.floor(s / 60);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
   s %= 60;
-  return m ? `${m}m ${s}s` : `${s}s`;
+  return h ? `${h}h ${m}m ${s}s` : m ? `${m}m ${s}s` : `${s}s`;
 }
 
 // ---------------------------------------------------------------- derived views
@@ -168,8 +171,13 @@ function setTabs(name) {
   });
 }
 
+let revealedOnce = false;
 function render() {
   const r = route();
+  const before = {};
+  document.querySelectorAll("[data-k]").forEach((e) => (before[e.dataset.k] = e.textContent));
+  const sameRoute = r.name === lastRoute;
+  lastRoute = r.name;
   setTabs(r.name);
   document.getElementById("hero").hidden = r.name !== "home";
   const keep = { x: window.scrollX, y: window.scrollY };
@@ -178,6 +186,17 @@ function render() {
   else if (r.name === "about") $main.innerHTML = aboutPage();
   else $main.innerHTML = homePage();
   wire(r);
+  if (r.name === "home") {
+    const slot = document.getElementById("watch-slot");
+    if (slot) mountWatch(slot, S.cfg.params);
+    document.querySelectorAll("[data-k]").forEach((e) => {
+      if (sameRoute && before[e.dataset.k] !== undefined && before[e.dataset.k] !== e.textContent) {
+        e.classList.add("flash");
+        setTimeout(() => e.classList.remove("flash"), 1200);
+      }
+    });
+    setupReveal();
+  }
   for (const id of ["msg", "msg-fund"]) {
     const el = document.getElementById(id);
     if (el && lastMsg[id]) {
@@ -188,9 +207,32 @@ function render() {
   window.scrollTo(keep.x, keep.y);
 }
 
+let updatedAt = Date.now();
+let revObs = null;
+function setupReveal() {
+  const items = document.querySelectorAll(".reveal");
+  if (revealedOnce || !("IntersectionObserver" in window) || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    items.forEach((e) => e.classList.add("in"));
+    return;
+  }
+  document.documentElement.classList.add("reveal-ready");
+  revObs?.disconnect();
+  revObs = new IntersectionObserver((en) => en.forEach((x) => { if (x.isIntersecting) { x.target.classList.add("in"); revObs.unobserve(x.target); } }), { threshold: 0.08 });
+  items.forEach((e) => revObs.observe(e));
+  revealedOnce = true;
+}
+setInterval(() => {
+  const el = document.getElementById("ago");
+  if (el) {
+    const s = Math.round((Date.now() - updatedAt) / 1000);
+    el.textContent = s < 5 ? "just now" : s < 90 ? `${s}s ago` : `${Math.round(s / 60)} min ago`;
+  }
+}, 1000);
+
 async function refresh() {
   try {
     await load();
+    updatedAt = Date.now();
   } catch (e) {
     $main.innerHTML = `<div class="card"><h2>Could not read the chain</h2><p class="muted">${esc(e.message)}</p><button id="retry">Try again</button></div>`;
     document.getElementById("retry")?.addEventListener("click", refresh);
@@ -216,16 +258,18 @@ function homePage() {
     <li><b>Pay and hold.</b> ${p.first_pct}% is paid at once. The rest is held for ${fmtDur(BigInt(p.hold_ns))} (short on this testnet build so it can be watched) and released unless two households report it broken again.</li>
   </ol>
 
-  <h2>The fund</h2>
-  <div class="grid cols3">
-    <div class="card"><div class="label">Shared pool, free</div><div class="stat num">${near(free)} <small>NEAR</small></div></div>
-    <div class="card"><div class="label">Earmarked for a pump</div><div class="stat num">${near(earmarked)} <small>NEAR</small></div></div>
-    <div class="card"><div class="label">Reserved for open repairs</div><div class="stat num">${near(reserved)} <small>NEAR</small></div></div>
+  <div id="watch-slot" class="reveal"></div>
+
+  <div class="row between reveal"><h2>The fund</h2><span class="livebar" role="status"><i class="live-dot" aria-hidden="true"></i>Live from the chain, updated <span id="ago">just now</span></span></div>
+  <div class="grid cols3 reveal">
+    <div class="card"><div class="label">Shared pool, free</div><div class="stat num"><span data-k="free">${near(free)}</span> <small>NEAR</small></div></div>
+    <div class="card"><div class="label">Earmarked for a pump</div><div class="stat num"><span data-k="earm">${near(earmarked)}</span> <small>NEAR</small></div></div>
+    <div class="card"><div class="label">Reserved for open repairs</div><div class="stat num"><span data-k="resv">${near(reserved)}</span> <small>NEAR</small></div></div>
   </div>
   <p class="muted" style="margin-top:10px">Pool account <a class="mono" href="${explorer(CONFIG.poolId)}" target="_blank" rel="noopener">${esc(CONFIG.poolId)}</a>. It also holds a small storage reserve of NEAR that is not part of the fund (account balance ${near(S.balance, 2)} NEAR).</p>
 
-  <h2 id="pumps">Water points</h2>
-  <div class="grid cols3">
+  <h2 id="pumps" class="reveal">Water points</h2>
+  <div class="grid cols3 reveal">
     ${S.pumps
       .map((pm) => {
         const st = pumpState(pm);

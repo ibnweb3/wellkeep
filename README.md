@@ -8,6 +8,8 @@ Built for NEAR HACKATHON. Tracks: NFTs and Real-World Money. A second entry from
 
 ## Try it (about five minutes)
 
+The home page opens with **Watch a repair**: an animated, labelled example (not chain data) of the repair rule using the pool's real settings. Pick a case (fixed and paid, not really fixed, broken again, too few replies), pause, step or restart it. The fund numbers underneath refresh from the chain every 15 seconds and flash when they change.
+
 Live (testnet): https://wellkeep.ibnweb3lab.workers.dev . Or run it locally:
 
 ```bash
