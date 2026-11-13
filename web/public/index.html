@@ -17,7 +17,7 @@
 <header class="top">
   <div class="wrap top-in">
     <a class="brand" href="#/" aria-label="WellKeep home">
-      <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><path d="M16 3C11 10 7 14.5 7 19.5a9 9 0 0018 0C25 14.5 21 10 16 3z" fill="currentColor"/></svg>
+      <svg viewBox="0 0 32 32" width="14" height="14" aria-hidden="true"><path d="M16 3C11 10 7 14.5 7 19.5a9 9 0 0018 0C25 14.5 21 10 16 3z" fill="currentColor"/></svg>
       <span>WellKeep</span>
     </a>
     <nav class="tabs" aria-label="Sections">
@@ -29,29 +29,32 @@
   </div>
 </header>
 <div class="banner" role="note">
-  <div class="wrap">NEAR <b>testnet</b> prototype. Test money and a fictional village. Not tested with any real community.</div>
+  <div class="wrap"><i aria-hidden="true"></i>NEAR <b>testnet</b> prototype. Test money and a fictional village. Not tested with any real community.</div>
 </div>
 <section id="hero" class="hero" hidden>
-  <div class="hero-in wrap">
-    <div class="tilt" id="tilt"><div class="callout">
-      <p class="eyebrow">Sub-Saharan Africa, after the ribbon is cut</p>
-      <h1>The well was donated. Who pays when the pump breaks?</h1>
-      <p id="hero-fact"><span class="tw">About 1 in 4 handpumps in sub-Saharan Africa is out of order. The donor's money built it; nothing is left to repair it.</span><sup><a href="https://waterpointdata.org/wp-content/uploads/2020/11/Functionality-of-handpump-water-supplies.pdf" target="_blank" rel="noopener" aria-label="Source: Foster and others, functionality of handpump water supplies">1</a></sup></p>
-      <p>WellKeep pays the mechanic only after the village confirms the pump works. Every payment is public.</p>
-      <div class="row">
-        <button id="gocheck" class="pill">Check the fund first</button>
-        <a class="pill ghost" href="#pumps" id="gopumps">See the water points</a>
-      </div>
-    </div></div>
+  <div class="wrap hero-in">
+    <p class="eyebrow">Sub-Saharan Africa, after the ribbon is cut</p>
+    <h1>The well was donated. Who pays when the pump breaks?</h1>
+    <p id="hero-fact"><span class="tw">About 1 in 4 handpumps in sub-Saharan Africa is out of order. The donor's money built it; nothing is left to repair it.</span><sup><a href="https://waterpointdata.org/wp-content/uploads/2020/11/Functionality-of-handpump-water-supplies.pdf" target="_blank" rel="noopener" aria-label="Source: Foster and others, functionality of handpump water supplies">1</a></sup></p>
+    <p class="hero-sub">WellKeep pays the mechanic only after the village confirms the pump works. Every payment is public.</p>
+    <div class="row cta">
+      <button id="gocheck" class="pill">Check the fund first</button>
+      <a class="pill ghost" href="#pumps" id="gopumps">See the water points</a>
+    </div>
   </div>
 </section>
 <main id="main" class="wrap" tabindex="-1">
   <p class="loading">Loading from the chain...</p>
 </main>
 <div id="live" class="sr" aria-live="polite"></div>
-<footer class="wrap foot">
-  <p>Built for NEAR HACKATHON. Reads come straight from the public testnet RPC; only the gas-paying relayer goes through this server.</p>
-  <p class="credits">Photos from Wikimedia Commons: water pump, USAID Africa Bureau (public domain); children at a pump, Kwameghana (CC0); borehole drilling, Ransome Telli (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>, resized and darkened). The people and organisations shown have no connection to this prototype and do not endorse it.</p>
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div>
+      <p class="foot-brand">WellKeep</p>
+      <p>Built for NEAR HACKATHON. Reads come straight from the public testnet RPC; only the gas-paying relayer goes through this server.</p>
+    </div>
+    <p class="credits">Photos from Wikimedia Commons: water pump, USAID Africa Bureau (public domain); children at a pump, Kwameghana (CC0); borehole drilling, Ransome Telli (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>, resized and darkened). The people and organisations shown have no connection to this prototype and do not endorse it.</p>
+  </div>
 </footer>
 <script type="module" src="/app.js"></script>
 </body>

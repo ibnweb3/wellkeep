@@ -185,6 +185,7 @@ function render() {
   else if (r.name === "ledger") $main.innerHTML = ledgerPage();
   else if (r.name === "about") $main.innerHTML = aboutPage();
   else $main.innerHTML = homePage();
+  $main.classList.toggle("home", r.name === "home");
   wire(r);
   if (r.name === "home") {
     const slot = document.getElementById("watch-slot");
@@ -249,47 +250,57 @@ function homePage() {
   const reserved = reservedTotal();
   const p = cfg.params;
   return `
-  <h2 class="first">How it works</h2>
-  <ol class="steps card">
-    <li><b>Check before you give.</b> Press the check below: it recomputes the fund's address and shows that no one holds a key to it.</li>
-    <li><b>Fund it.</b> Connect your own NEAR testnet wallet and give to a pump or to the shared pool.</li>
-    <li><b>Report.</b> A household types its number and a code from its printed card to report the pump broken. A job opens.</li>
-    <li><b>Fix and check.</b> A registered mechanic signs in with their own wallet, accepts and posts the fix. The reporter and ${p.sample_size} random households are asked; ${p.min_replies} replies are needed and two thirds must say it works.</li>
-    <li><b>Pay and hold.</b> ${p.first_pct}% is paid at once. The rest is held for ${fmtDur(BigInt(p.hold_ns))} (short on this testnet build so it can be watched) and released unless two households report it broken again.</li>
-  </ol>
-
-  <div id="watch-slot" class="reveal"></div>
-
-  <div class="row between reveal"><h2>The fund</h2><span class="livebar" role="status"><i class="live-dot" aria-hidden="true"></i>Live from the chain, updated <span id="ago">just now</span></span></div>
-  <div class="grid cols3 reveal">
-    <div class="card"><div class="label">Shared pool, free</div><div class="stat num"><span data-k="free">${near(free)}</span> <small>NEAR</small></div></div>
-    <div class="card"><div class="label">Earmarked for a pump</div><div class="stat num"><span data-k="earm">${near(earmarked)}</span> <small>NEAR</small></div></div>
-    <div class="card"><div class="label">Reserved for open repairs</div><div class="stat num"><span data-k="resv">${near(reserved)}</span> <small>NEAR</small></div></div>
+  <div class="statrow reveal">
+    <div><div class="label">Shared pool, free</div><div class="stat num"><span data-k="free">${near(free)}</span> <small>NEAR</small></div></div>
+    <div><div class="label">Earmarked for a pump</div><div class="stat num"><span data-k="earm">${near(earmarked)}</span> <small>NEAR</small></div></div>
+    <div><div class="label">Reserved for open repairs</div><div class="stat num"><span data-k="resv">${near(reserved)}</span> <small>NEAR</small></div></div>
   </div>
-  <p class="muted" style="margin-top:10px">Pool account <a class="mono" href="${explorer(CONFIG.poolId)}" target="_blank" rel="noopener">${esc(CONFIG.poolId)}</a>. It also holds a small storage reserve of NEAR that is not part of the fund (account balance ${near(S.balance, 2)} NEAR).</p>
+  <p class="poolline row between"><span>Pool account <a class="mono" href="${explorer(CONFIG.poolId)}" target="_blank" rel="noopener">${esc(CONFIG.poolId)}</a>. It also holds a small storage reserve of NEAR that is not part of the fund (account balance ${near(S.balance, 2)} NEAR).</span><span class="livebar" role="status"><i class="live-dot" aria-hidden="true"></i>Live from the chain, updated <span id="ago">just now</span></span></p>
 
-  <h2 id="pumps" class="reveal">Water points</h2>
-  <div class="grid cols3 reveal">
+  <figure class="plate reveal"><img src="/img/hero-pump.jpg" alt="Women and children collecting water at a hand pump" width="1600" height="700" loading="lazy"></figure>
+
+  <section class="sec reveal" aria-labelledby="pumps">
+    <div class="sec-head"><div><span class="kicker">Water points</span><h2 id="pumps">The pumps this fund keeps running</h2></div></div>
+    <ol class="plist">
     ${S.pumps
       .map((pm) => {
         const st = pumpState(pm);
-        return `<a class="card pump" href="#/pump/${pm.id}" aria-label="Open ${esc(pm.name)}">
-          <div class="row between"><b>${esc(pm.name)}</b>${chipFor(st.key)}</div>
-          <div class="muted">Earmarked <span class="num">${near(pm.earmark)}</span> NEAR</div>
-        </a>`;
+        return `<li><a href="#/pump/${pm.id}" aria-label="Open ${esc(pm.name)}"><b>${esc(pm.name)}</b><span class="ear">Earmarked <span class="num">${near(pm.earmark)}</span> NEAR</span>${chipFor(st.key)}<span class="go" aria-hidden="true">&rarr;</span></a></li>`;
       })
-      .join("") || `<div class="card empty">No water points registered yet.</div>`}
-  </div>
-
-  <section class="band" style="--img:url(/img/children-well.jpg)" aria-label="Photograph of children at a hand pump">
-    <div class="wrap"><blockquote>A well is only the start. Keeping it running is the hard part.<footer>That is what this fund pays for, in the open.</footer></blockquote></div>
+      .join("") || `<li class="empty">No water points registered yet.</li>`}
+    </ol>
   </section>
-  <h2 id="check">Check before you give</h2>
-  <div class="card">
-    <p>Nothing here asks you to trust this website. The check reads the chain and recomputes the address itself.</p>
-    <button id="runcheck">Run the checks</button>
-    <ul class="checks" id="checks" aria-live="polite">${checksHtml()}</ul>
-  </div>`;
+
+  <section class="sec reveal" aria-label="The idea">
+    <span class="kicker">The idea</span>
+    <p class="statement">A well is only the start. Keeping it running is the hard part.</p>
+    <p class="statement-sub">That is what this fund pays for, in the open.</p>
+  </section>
+
+  <section class="bandblack reveal" aria-labelledby="how-h">
+    <div class="wrap">
+      <span class="eyebrow">How it works</span>
+      <h2 id="how-h">Five steps. Nobody holds a key.</h2>
+      <ol class="steps">
+        <li><b>Check before you give</b>Press the check below: it recomputes the fund's address and shows that no one holds a key to it.</li>
+        <li><b>Fund it</b>Connect your own NEAR testnet wallet and give to a pump or to the shared pool.</li>
+        <li><b>Report</b>A household types its number and a code from its printed card to report the pump broken. A job opens.</li>
+        <li><b>Fix and check</b>A registered mechanic signs in with their own wallet, accepts and posts the fix. The reporter and ${p.sample_size} random households are asked; ${p.min_replies} replies are needed and two thirds must say it works.</li>
+        <li><b>Pay and hold</b>${p.first_pct}% is paid at once. The rest is held for ${fmtDur(BigInt(p.hold_ns))} (short on this testnet build so it can be watched) and released unless two households report it broken again.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="sec reveal" aria-label="Watch a repair"><div id="watch-slot"></div></section>
+
+  <section class="sec reveal" aria-labelledby="check">
+    <div class="sec-head"><div><span class="kicker">Verify</span><h2 id="check">Check before you give</h2></div></div>
+    <div class="card">
+      <p>Nothing here asks you to trust this website. The check reads the chain and recomputes the address itself.</p>
+      <button id="runcheck">Run the checks</button>
+      <ul class="checks" id="checks" aria-live="polite">${checksHtml()}</ul>
+    </div>
+  </section>`;
 }
 
 function checksHtml() {
@@ -618,17 +629,4 @@ document.getElementById("gocheck")?.addEventListener("click", () => {
       }, 30);
     }, 700);
   }, 100);
-})();
-
-// Pointer tilt on the hero box (mouse devices only, not for reduced motion).
-(function tilt() {
-  const hero = document.getElementById("hero"), box = document.querySelector("#tilt .callout");
-  if (!hero || !box || !matchMedia("(hover: hover) and (pointer: fine)").matches || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  hero.addEventListener("pointermove", (e) => {
-    const r = hero.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
-    box.style.setProperty("--ry", `${(x * 9).toFixed(2)}deg`);
-    box.style.setProperty("--rx", `${(-y * 7).toFixed(2)}deg`);
-  });
-  hero.addEventListener("pointerleave", () => { box.style.setProperty("--ry", "0deg"); box.style.setProperty("--rx", "0deg"); });
 })();
