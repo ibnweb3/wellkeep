@@ -257,8 +257,6 @@ function homePage() {
   </div>
   <p class="poolline row between"><span>Pool account <a class="mono" href="${explorer(CONFIG.poolId)}" target="_blank" rel="noopener">${esc(CONFIG.poolId)}</a>. It also holds a small storage reserve of NEAR that is not part of the fund (account balance ${near(S.balance, 2)} NEAR).</span><span class="livebar" role="status"><i class="live-dot" aria-hidden="true"></i>Live from the chain, updated <span id="ago">just now</span></span></p>
 
-  <figure class="plate reveal"><img src="/img/hero-pump.jpg" alt="Women and children collecting water at a hand pump" width="1600" height="700" loading="lazy"></figure>
-
   <section class="sec reveal" aria-labelledby="pumps">
     <div class="sec-head"><div><span class="kicker">Water points</span><h2 id="pumps">The pumps this fund keeps running</h2></div></div>
     <ol class="plist">
@@ -606,27 +604,31 @@ document.getElementById("gocheck")?.addEventListener("click", () => {
   runCheck();
 });
 
-// Typewriter for the opening fact. The full text stays in the DOM (screen readers get it at once); sighted
-// visitors see it typed. Skipped when the visitor prefers reduced motion.
+// Looping typewriter for the opening fact: types, holds, erases, types again. The full text stays in the DOM
+// (screen readers get it at once). Skipped for reduced motion; pauses while the tab or the hero is off screen.
 (function typewriter() {
   const span = document.querySelector("#hero-fact .tw");
   if (!span || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const full = span.textContent;
   span.innerHTML = `<span class="sr">${esc(full)}</span><span aria-hidden="true"><span class="tw-d typing"></span><span class="tw-r">${esc(full)}</span></span>`;
   const done = span.querySelector(".tw-d"), rest = span.querySelector(".tw-r");
-  let n = 0;
-  // start once the hero is actually shown (it stays hidden until the chain data has loaded)
   const hero = document.getElementById("hero");
-  const wait = setInterval(() => {
-    if (hero.hidden) return;
-    clearInterval(wait);
-    setTimeout(() => {
-      const t = setInterval(() => {
-        n += 1;
-        done.textContent = full.slice(0, n);
-        rest.textContent = full.slice(n);
-        if (n >= full.length) { clearInterval(t); done.classList.remove("typing"); }
-      }, 30);
-    }, 700);
-  }, 100);
+  let n = 0, dir = 1, hold = 0;
+  const show = () => { done.textContent = full.slice(0, n); rest.textContent = full.slice(n); };
+  const tick = () => {
+    const seen = !document.hidden && !hero.hidden && hero.getBoundingClientRect().bottom > 0;
+    let wait = dir > 0 ? 30 : 12;
+    if (seen) {
+      if (hold > 0) { hold -= 1; wait = 100; }
+      else if (dir > 0) {
+        n += 1; show();
+        if (n >= full.length) { dir = -1; hold = 30; } // read it for about 3 s
+      } else {
+        n -= 1; show();
+        if (n <= 0) { dir = 1; hold = 5; }
+      }
+    } else wait = 300;
+    setTimeout(tick, wait);
+  };
+  setTimeout(tick, 700);
 })();
