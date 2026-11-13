@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>WellKeep - repair fund on NEAR</title>
-<meta name="description" content="One broken pump shouldn't bring back a five-mile walk. A public repair fund for community water points in sub-Saharan Africa, built on NEAR (testnet): a keyless account, NEP-171 pump records, and a sandbox to play every role: mechanics are paid only after villagers confirm the fix.">
+<meta name="description" content="One broken pump shouldn't bring back a five-mile walk. A public repair fund for community water points in sub-Saharan Africa, built on NEAR (testnet): every pump is an NEP-171 NFT with its own keyless account holding USDC, a Sputnik DAO committee approves big quotes, and mechanics are paid only after villagers confirm the fix.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cstyle%3Epath%7Bfill:%230f6b8c%7D@media(prefers-color-scheme:dark)%7Bpath%7Bfill:%2354b6d6%7D%7D%3C/style%3E%3Cpath d='M16 3C11 10 7 14.5 7 19.5a9 9 0 0018 0C25 14.5 21 10 16 3z'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,7 +23,8 @@
     <nav class="tabs" aria-label="Sections">
       <a href="#/" data-route="home">Overview</a>
       <a href="#/try" data-route="try">Try it</a>
-      <a href="#/ledger" data-route="ledger">Public ledger</a>
+      <a href="#/ledger" data-route="ledger">Ledger and invoices</a>
+      <a href="#/community" data-route="community">Community</a>
       <a href="#/about" data-route="about">Limits</a>
     </nav>
     <button id="wallet-btn" class="pill small" type="button">Connect wallet</button>
@@ -34,7 +35,7 @@
     <p class="eyebrow">Sub-Saharan Africa, after the ribbon is cut</p>
     <h1>One broken pump shouldn't bring back a five-mile walk.</h1>
     <p id="hero-fact"><span class="tw">About 1 in 4 handpumps in sub-Saharan Africa is out of order. The donor's money built it; nothing is left to repair it.</span><sup><a href="https://waterpointdata.org/wp-content/uploads/2020/11/Functionality-of-handpump-water-supplies.pdf" target="_blank" rel="noopener" aria-label="Source: Foster and others, functionality of handpump water supplies">1</a></sup></p>
-    <p class="hero-sub">WellKeep pays the mechanic only after the village confirms the pump works. Every payment is public, on NEAR.</p>
+    <p class="hero-sub">WellKeep pays the mechanic in USDC only after the village confirms the pump works. Every payment is public, on NEAR.</p>
     <div class="row cta">
       <button id="gocheck" class="pill">Check the fund first</button>
       <a class="pill ghost" href="#pumps" id="gopumps">See the water points</a>
@@ -49,8 +50,8 @@
   <div class="wrap foot-in">
     <div>
       <p class="foot-brand">WellKeep</p>
-      <p>Built on NEAR: a keyless deterministic account running a global contract by hash, NEP-171 records for water points and households, NEAR's on-chain random seed, near-kit, and a NEAR wallet for donors and mechanics.</p>
-      <p>Built for NEAR HACKATHON. A testnet prototype: test money, a fictional village, not tested with any real community. Reads come straight from the public testnet RPC; only the gas-paying relayer goes through this server.</p>
+      <p>Built on NEAR: a keyless deterministic account running a global contract by hash, one keyless sub-account per water point holding its USDC, NEP-171 NFTs for water points and households, a Sputnik DAO as the village committee, NEAR's on-chain random seed, near-kit, and a NEAR wallet for donors and mechanics.</p>
+      <p>Built for NEAR HACKATHON. A testnet prototype: Circle's test USDC, a fictional village, not tested with any real community. Reads come straight from the public testnet RPC; only the gas-paying relayer goes through this server.</p>
     </div>
     <p class="credits">Photos from Wikimedia Commons: water pump, USAID Africa Bureau (public domain); children at a pump, Kwameghana (CC0); borehole drilling, Ransome Telli (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>, resized and darkened). The people and organisations shown have no connection to this prototype and do not endorse it.</p>
   </div>

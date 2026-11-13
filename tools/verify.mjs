@@ -7,7 +7,7 @@ const realFetch = globalThis.fetch;
 // Serve the two local evidence files to the shared check code, exactly as the site serves them.
 globalThis.fetch = async (u, o) => {
   const s = String(u);
-  if (s === "local:wasm") return new Response(readFileSync("evidence/borehole_pool.wasm"));
+  if (s === "local:wasm") return new Response(readFileSync("evidence/wellkeep_pool.wasm"));
   if (s === "local:state") return new Response(readFileSync("evidence/state-init.json"));
   return realFetch(u, o);
 };

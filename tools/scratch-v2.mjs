@@ -9,9 +9,13 @@ import { nearFor, viewer, sleep, NETWORK } from "./lib.mjs";
 import { loadCards, cred, call } from "./pool.mjs";
 import { ACTIONS } from "../web/public/merkle.js";
 
-export const USDC = "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af";
+// MOCK=<path to mock NEP-141 wasm> runs against a throwaway token instead of Circle's USDC (before faucet USDC is available).
+const MOCK = process.env.MOCK;
+const deployerId = "bh-deployer-1113.testnet";
+const mockId = `bh-mock.${deployerId}`;
+export const USDC = MOCK ? mockId : "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af";
 const deployer = "bh-deployer-1113.testnet";
-const pool = `bh-s5.${deployer}`;
+const pool = `bh-s6.${deployer}`;
 const A = "bh-signer-a.testnet", B = "bh-signer-b.testnet", M = "bh-mechanic.testnet", D = "bh-donor.testnet", R = "bh-relay.testnet";
 const STEWARD = "bh-relay.testnet"; // a stand-in holder for the scratch run
 const U = (n) => String(Math.round(n * 1e6)); // USDC has 6 decimals
@@ -20,7 +24,17 @@ const usdcOf = async (a) => Number(await viewer().view(USDC, "ft_balance_of", { 
 const cards = await loadCards();
 const dep = nearFor(deployer);
 const near = (id) => nearFor(id);
+const jobNow = async () => { await sleep(7000); return viewer().view(pool, "get_job", { id: 0 }); }; // views trail finalised state by a few seconds
 
+if (MOCK) {
+  const mk = generateKey();
+  writeFileSync(`.keys/${mockId}.json`, JSON.stringify({ accountId: mockId, privateKey: mk.secretKey }));
+  await nearFor(deployer).transaction(deployer).createAccount(mockId).transfer(mockId, "3 NEAR").addKey(mk.publicKey.toString(), { type: "fullAccess" }).deployContract(mockId, readFileSync(MOCK)).send();
+  const mockNear = new (await import("near-kit")).Near({ network: NETWORK, privateKey: mk.secretKey, defaultSignerId: mockId });
+  await call(mockNear, mockId, "new", {});
+  for (const a of [D, M]) await call(mockNear, mockId, "mint", { account_id: a, amount: String(100e6) });
+  console.log("mock token", mockId, "minted 100 to donor");
+}
 const key = generateKey();
 writeFileSync(`.keys/${pool}.json`, JSON.stringify({ accountId: pool, privateKey: key.secretKey }));
 console.log("create + deploy", pool);
@@ -55,8 +69,8 @@ console.log("mechanic registered at USDC:", JSON.stringify(await viewer().view(U
 const have = await usdcOf(D);
 console.log("donor USDC", have);
 if (have < 6) { console.log("STOP: donor needs test USDC (faucet.circle.com). Cleaning up."); await me.transaction(pool).deleteAccount({ beneficiary: deployer }).send(); process.exit(0); }
-await call(near(D), USDC, "ft_transfer_call", { receiver_id: pool, amount: U(3), msg: "pool" }, "1 yoctoNEAR");
-await call(near(D), USDC, "ft_transfer_call", { receiver_id: pool, amount: U(1), msg: "pump:0" }, "1 yoctoNEAR");
+await call(near(D), USDC, "ft_transfer_call", { receiver_id: pool, amount: U(3), msg: "pool" }, "1 yocto");
+await call(near(D), USDC, "ft_transfer_call", { receiver_id: pool, amount: U(1), msg: "pump:0" }, "1 yocto");
 await sleep(7000);
 console.log("pool USDC", await usdcOf(pool), "vault USDC", await usdcOf(vault), "config.free", (await viewer().view(pool, "get_config", {})).free, "pump earmark", (await viewer().view(pool, "get_pump", { id: 0 })).earmark);
 
@@ -64,18 +78,18 @@ const relay = near(R);
 await call(relay, pool, "report_broken", { pump: 0, cred: cred(cards, 0, 0, ACTIONS.report) });
 // a big quote (3 USDC > tier0 1 USDC) must wait for the steward
 await call(near(M), pool, "accept_job", { job: 0, price: U(3) });
-let job = await viewer().view(pool, "get_job", { id: 0 });
+let job = await jobNow();
 console.log("after big quote:", job.status);
 // the stand-in steward transfers the NFT to the deployer, who is then the one who must approve
-await call(near(STEWARD), pool, "nft_transfer", { receiver_id: deployer, token_id: "pump-0" }, "1 yoctoNEAR");
+await call(near(STEWARD), pool, "nft_transfer", { receiver_id: deployer, token_id: "pump-0" }, "1 yocto");
 try { await call(near(STEWARD), pool, "steward_approve", { job: 0 }); console.log("ERROR: old holder could approve"); } catch (e) { console.log("old holder refused:", (e.panic ?? e.message).slice(0, 90)); }
 await call(dep, pool, "steward_approve", { job: 0 });
-job = await viewer().view(pool, "get_job", { id: 0 });
+job = await jobNow();
 console.log("after steward approval:", job.status, "price", job.price);
 await sleep(6000);
 console.log("vault USDC after reserve", await usdcOf(vault), "(should be 3 = 1 own + 2 topped up from the shared fund)");
 await call(near(M), pool, "post_fix", { job: 0 });
-job = await viewer().view(pool, "get_job", { id: 0 });
+job = await jobNow();
 let n = 0;
 const mBefore = await usdcOf(M);
 for (const hh of job.eligible) {
@@ -83,13 +97,13 @@ for (const hh of job.eligible) {
   if (++n === 5) break;
 }
 await sleep(8000);
-job = await viewer().view(pool, "get_job", { id: 0 });
+job = await jobNow();
 console.log("status", job.status, "paid", job.paid, "held", job.held);
 console.log("mechanic USDC +", (await usdcOf(M) - mBefore).toFixed(2), "(expected 2.10)", "vault now", await usdcOf(vault));
 await sleep(14000);
 await call(relay, pool, "release_held", { job: 0 });
 await sleep(8000);
-job = await viewer().view(pool, "get_job", { id: 0 });
+job = await jobNow();
 console.log("final", job.status, "mechanic USDC total +", (await usdcOf(M) - mBefore).toFixed(2), "(expected 3.00)", "vault now", await usdcOf(vault));
 console.log("mechanic record", JSON.stringify(await viewer().view(pool, "get_mechanic", { account: M })));
 console.log("pump history", JSON.stringify(await viewer().view(pool, "get_pump", { id: 0 })).slice(0, 500));

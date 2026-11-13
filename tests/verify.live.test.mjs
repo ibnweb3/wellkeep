@@ -9,7 +9,7 @@ const pub = JSON.parse(readFileSync("evidence/publish.json", "utf8"));
 const RPC = process.env.RPC_URL || "https://test.rpc.fastnear.com";
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (u, o) => {
-  if (String(u) === "local:wasm") return new Response(readFileSync("evidence/borehole_pool.wasm"));
+  if (String(u) === "local:wasm") return new Response(readFileSync("evidence/wellkeep_pool.wasm"));
   if (String(u) === "local:state") return new Response(readFileSync("evidence/state-init.json"));
   return realFetch(u, o);
 };

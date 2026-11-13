@@ -329,3 +329,16 @@ summary { cursor: pointer; font-weight: 700; letter-spacing: -0.01em; }
 .stack ul { list-style: none; margin: 10px 0 0; padding: 0; border-top: 1px solid var(--line); }
 .stack li { padding: 10px 0; border-bottom: 1px solid var(--line); }
 @media (max-width: 700px) { .nft { grid-template-columns: 1fr; gap: 2px; } .nft dd { margin-bottom: 8px; } .trystrip { padding: 18px; } }
+
+/* ---- v2: pump NFT history, invoices, community */
+.holders { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; }
+.holders li { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 6px; font-size: 0.85rem; }
+.holders small { color: var(--muted); }
+.invoice h1 { font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.1rem); }
+.grid.small p { margin: 4px 0 0; }
+.tabs { gap: clamp(12px, 2vw, 22px); }
+@media print {
+  .top, .foot, #hero, .row button, .skip, #wallet-btn { display: none !important; }
+  body { background: #fff; color: #000; }
+  .card { box-shadow: none; border-color: #999; }
+}

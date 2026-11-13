@@ -8,7 +8,7 @@ import { deriveAccountId } from "near-kit";
 import { nearFor, viewer } from "./lib.mjs";
 
 const deployer = "bh-deployer-1113.testnet";
-const wasm = readFileSync("evidence/borehole_pool.wasm");
+const wasm = readFileSync("evidence/wellkeep_pool.wasm");
 const hash = createHash("sha256").update(wasm).digest();
 const b58 = (u8) => {
   const A = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";

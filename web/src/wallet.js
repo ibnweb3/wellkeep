@@ -45,13 +45,16 @@ export async function disconnect() {
 }
 export const accountId = () => current && current.accountId;
 
-// Calls a pool method signed by the connected wallet. deposit is yoctoNEAR as a string.
-export async function callPool(poolId, method, args, deposit = "0") {
+// Calls a method on any contract, signed by the connected wallet. deposit is yoctoNEAR as a string.
+// (Used for the pool, and for ft_transfer_call on the USDC contract, which needs 1 yoctoNEAR and more gas.)
+export async function callContract(receiverId, method, args, deposit = "0", gas = "100000000000000") {
   if (!current) throw new Error("Connect a wallet first");
   const out = await current.wallet.signAndSendTransaction({
-    receiverId: poolId,
-    actions: [{ type: "FunctionCall", params: { methodName: method, args, gas: "100000000000000", deposit } }],
+    receiverId,
+    actions: [{ type: "FunctionCall", params: { methodName: method, args, gas, deposit } }],
   });
   const hash = out?.transaction?.hash || out?.transaction_outcome?.id || (Array.isArray(out) ? out[0]?.transaction?.hash : undefined);
   return { ok: true, hash };
 }
+
+export const callPool = (poolId, method, args, deposit = "0") => callContract(poolId, method, args, deposit);

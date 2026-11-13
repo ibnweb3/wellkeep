@@ -68,11 +68,14 @@ export function decodeInitialState(bytes) {
   };
   const signers = [str(), str()];
   const params = {
+    token: str(),
     hold_ns: u64().toString(),
     vote_window_ns: u64().toString(),
     min_replies: u32(),
     sample_size: u32(),
     max_price: u128().toString(),
+    tier0_cap: u128().toString(),
+    tier1_cap: u128().toString(),
     first_pct: u8(),
     rebroken_needed: u32(),
     max_attempts: u8(),
@@ -87,7 +90,7 @@ export function decodeInitialState(bytes) {
  * @param {{rpcUrl:string, poolId:string, wasmUrl:string, stateUrl:string}} o
  * @returns {Promise<{id:string,title:string,ok:boolean,detail:string}[]>}
  */
-export async function runChecks({ rpcUrl, poolId, wasmUrl, stateUrl }) {
+export async function runChecks({ rpcUrl, poolId, wasmUrl, vaultWasmUrl, stateUrl }) {
   const out = [];
   const add = (id, title, ok, detail) => out.push({ id, title, ok, detail });
   const T_WASM = "The code at that hash is the wasm shipped in this repository";
@@ -164,11 +167,14 @@ export async function runChecks({ rpcUrl, poolId, wasmUrl, stateUrl }) {
   const p = cfg.params;
   const q = init.params;
   const sameParams =
+    p.token === q.token &&
     String(p.hold_ns) === q.hold_ns &&
     String(p.vote_window_ns) === q.vote_window_ns &&
     p.min_replies === q.min_replies &&
     p.sample_size === q.sample_size &&
     String(p.max_price) === q.max_price &&
+    String(p.tier0_cap) === q.tier0_cap &&
+    String(p.tier1_cap) === q.tier1_cap &&
     p.first_pct === q.first_pct &&
     p.rebroken_needed === q.rebroken_needed &&
     p.max_attempts === q.max_attempts;
@@ -178,7 +184,37 @@ export async function runChecks({ rpcUrl, poolId, wasmUrl, stateUrl }) {
     "rules",
     T_RULES,
     sameParams && sameSigners && cfg.batches[0]?.root === rootInit,
-    `signers ${init.signers.join(" + ")}; ${init.batches[0].count} households; code root ${hex(init.batches[0].root).slice(0, 16)}...`,
+    `signers ${init.signers.join(" + ")}; ${init.batches[0].count} households; money is the NEP-141 token ${init.params.token.slice(0, 10)}...; code root ${hex(init.batches[0].root).slice(0, 16)}...`,
   );
+
+  // Every water point has its own account holding its money. It must be keyless and run exactly the vault
+  // code that the pool embeds, whose hash the pool reports and this page recomputes from the shipped wasm.
+  if (!vaultWasmUrl) return out;
+  const T_VAULT = "Every water point's own account has no keys and runs exactly the vault code shipped here";
+  try {
+    const vaultWasm = new Uint8Array(await (await fetch(vaultWasmUrl)).arrayBuffer());
+    const vaultHash = await sha256(vaultWasm);
+    const pumps = await rpc(rpcUrl, "query", {
+      request_type: "call_function",
+      finality: "final",
+      account_id: poolId,
+      method_name: "list_pumps",
+      args_base64: btoa("{}"),
+    }).then((r) => JSON.parse(new TextDecoder().decode(Uint8Array.from(r.result))));
+    const problems = [];
+    for (const [id, pump] of pumps) {
+      const [va, vk] = await Promise.all([
+        rpc(rpcUrl, "query", { request_type: "view_account", finality: "final", account_id: pump.vault }),
+        rpc(rpcUrl, "query", { request_type: "view_access_key_list", finality: "final", account_id: pump.vault }),
+      ]);
+      if (vk.keys.length) problems.push(`pump-${id} has ${vk.keys.length} key(s)`);
+      if (va.code_hash !== base58(vaultHash)) problems.push(`pump-${id} runs different code`);
+    }
+    const sameAsPool = hex(vaultHash) === cfg.vault_code_hash;
+    if (!sameAsPool) problems.push("the pool reports a different vault hash");
+    add("vaults", T_VAULT, problems.length === 0 && pumps.length > 0, problems.length ? problems.join("; ") : `${pumps.length} pump account(s), 0 keys each, code hash ${base58(vaultHash)} (${vaultWasm.length} bytes)`);
+  } catch (e) {
+    add("vaults", T_VAULT, false, String(e.message));
+  }
   return out;
 }
