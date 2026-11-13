@@ -180,6 +180,13 @@ label select, label input { text-transform: none; letter-spacing: normal; font-w
 .steps li::before { content: counter(s, decimal-leading-zero); display: block; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em; color: var(--accent); margin-bottom: 18px; }
 .steps li b { display: block; color: var(--band-ink); font-size: 1.35rem; font-weight: 800; letter-spacing: -0.015em; line-height: 1.2; margin-bottom: 10px; }
 
+/* why NEAR */
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); border-top: 1px solid var(--ink); }
+.facts > div { padding: 24px 28px 28px 0; border-bottom: 1px solid var(--line); }
+.facts b { display: block; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.015em; line-height: 1.2; margin-bottom: 10px; }
+.facts p { color: var(--muted); margin: 0; }
+.facts-note { margin-top: 18px; max-width: 70ch; }
+
 /* cards, rows, chips */
 .grid { display: grid; gap: 0; }
 .grid.cols3 { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
@@ -297,3 +304,28 @@ summary { cursor: pointer; font-weight: 700; letter-spacing: -0.01em; }
   .live-dot, .flash, .tw-d.typing::after, .hero-in > * { animation: none; }
   .reveal, .tile, .tally, .mbar, .stages li, .plist .go { transition: none; }
 }
+
+/* judge sandbox, NFT records, NEAR stack */
+.roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); border-top: 1px solid var(--ink); margin: 0 0 28px; }
+.roles > div { padding: 18px 20px 20px 0; border-bottom: 1px solid var(--line); }
+.roles p { margin: 8px 0 0; color: var(--muted); font-size: 0.92rem; }
+.role { display: inline-block; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 9px; background: var(--ink); color: var(--bg); }
+.voters { list-style: none; margin: 12px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.voters li { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.voters button { min-height: 38px; padding: 0 14px; }
+.txlog { padding-left: 1.2em; }
+.txlog li { padding: 4px 0; }
+.nft { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 12px 0 0; font-size: 0.9rem; }
+.nft dt { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+.nft dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.nfttag { display: block; font-size: 0.64rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+.trystrip { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: clamp(40px, 6vw, 64px); padding: 22px 24px; border: 1px solid var(--ink); text-decoration: none; background: var(--ink); color: var(--bg); transition: background-color 160ms ease, color 160ms ease; }
+.trystrip .kicker { display: block; color: #b9b6ac; margin-bottom: 8px; }
+.trystrip b { display: block; font-size: clamp(1.15rem, 1rem + 0.9vw, 1.6rem); font-weight: 800; letter-spacing: -0.015em; line-height: 1.2; }
+.trystrip em { display: block; font-style: normal; color: #d5d2c8; margin-top: 4px; }
+.trystrip > span:last-child { font-size: 1.6rem; transition: transform 160ms ease; }
+@media (hover: hover) { .trystrip:hover { background: var(--accent); color: #0a0a0a; border-color: var(--accent); } .trystrip:hover .kicker, .trystrip:hover em { color: #0a0a0a; } .trystrip:hover > span:last-child { transform: translateX(6px); } }
+.stack { margin-top: 28px; }
+.stack ul { list-style: none; margin: 10px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.stack li { padding: 10px 0; border-bottom: 1px solid var(--line); }
+@media (max-width: 700px) { .nft { grid-template-columns: 1fr; gap: 2px; } .nft dd { margin-bottom: 8px; } .trystrip { padding: 18px; } }

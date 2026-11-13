@@ -4,11 +4,20 @@ A keyless repair fund for community water points, on NEAR testnet. Fund the repa
 
 **In 30 seconds.** A donor pays for a borehole, then it breaks because nobody has money to fix it. WellKeep is the repair fund that keeps it working, and nobody holds the money. A pump is reported broken with a one-time code from a printed household card. A registered mechanic takes the job. The reporter plus about eight randomly chosen households are asked "does it work now?". If two thirds say yes, the mechanic is paid 70% at once and the other 30% a short time later, unless two different households report the pump broken again. Every report, vote and payment is public. A donor can run one check that proves, from the chain alone, that no key exists for the fund and that its code cannot change.
 
-Built for NEAR HACKATHON. Tracks: NFTs and Real-World Money. A second entry from the same author, [Cautio](https://github.com/ibnweb3/cautio) (rental deposits in a keyless NEAR account, [live](https://cautio.ibnweb3lab.workers.dev)), uses the same idea of an account that nobody holds a key to. This is a prototype on testnet with test money. It has not been tested with any real community.
+Built on NEAR for NEAR HACKATHON. Tracks: NFTs and Real-World Money. NEAR pieces used: a keyless deterministic account running a global contract by hash, NEP-171 NFT records for every water point and household, NEAR's on-chain random seed, near-sdk, near-kit and a NEAR wallet (full map in "NEAR integration map" below). A second entry from the same author, [Cautio](https://github.com/ibnweb3/cautio) (rental deposits in a keyless NEAR account, [live](https://cautio.ibnweb3lab.workers.dev)), uses the same idea of an account that nobody holds a key to. This is a prototype on testnet with test money. It has not been tested with any real community.
 
 ## Try it (about five minutes)
 
-The home page opens with **Watch a repair**: an animated, labelled example (not chain data) of the repair rule using the pool's real settings. Pick a case (fixed and paid, not really fixed, broken again, too few replies), pause, step or restart it. The fund numbers underneath refresh from the chain every 15 seconds and flash when they change.
+**Play every role (no wallet, 3 minutes).** Open the live site, press **Try it** and walk one repair through all the roles: a villager reports a pump broken, a sandbox mechanic accepts and posts the fix, the village votes, and the mechanic is paid 70%. Every button sends a real NEAR testnet transaction and shows its link. The sandbox mechanic is `bh-relay.testnet`, an account registered on the pool as a mechanic; the Worker's `/api/sandbox` signs only `accept_job` and `post_fix` as that account, with quotes capped at 0.3 NEAR. Real mechanics use their own wallet on the water point's page.
+
+**Fastest check, no wallet needed (2 minutes).** Open the live site and:
+
+1. Press **Run the checks** (section "Check before you give"). You should see seven PASS lines: the pool account exists, has 0 access keys, its code is referenced by hash, and the address recomputed in your browser equals the fund's address.
+2. Open **Watch a repair** and pick "Fixed and paid", then "Not really fixed". You should see 70% paid at once and 30% held in the first case, and nothing paid in the second. This animation is an example, labelled "not chain data".
+3. Open **Water points**, then "Village A - health post". You should see a real job with its transactions: a payment of 0.35 NEAR with 0.15 NEAR held (the held share can be released after the one-hour hold).
+4. Open **Public ledger**. You should see every deposit, report, vote and payment with its transaction link.
+
+The fund numbers at the top of the home page refresh from the chain every 15 seconds and flash when they change.
 
 Live (testnet): https://wellkeep.ibnweb3lab.workers.dev . Or run it locally:
 
@@ -63,12 +72,31 @@ hold ends, no forfeit ─▶ release_held (anyone) ─▶ 30% paid
 - **Why two stages, no bond.** Field research found that a mechanic bond punishes honest mechanics (worn parts, dry sources). The held 30% is the incentive.
 - **Why pooled and on demand.** Evidence found that pumps break many times a year (FundiFix pools across pumps) and that on-demand repair beats scheduled visits (Rwanda trial), so there is one pooled fund with optional earmarks and a report opens the job.
 
+## NEAR integration map
+
+Every NEAR piece in this build, and where to find it:
+
+| NEAR feature | What it does here | Where |
+| --- | --- | --- |
+| NEAR testnet | Holds the fund, jobs, votes and the public ledger | `wrangler.toml` (`POOL_ID`), `evidence/publish.json` |
+| Global contract, referenced by hash | The pool's code lives once on-chain under hash `3ecEVdauLBD77PNzxB7VjpeaDhX5wNdpw1iT1HrHdqW7`; the pool points at the hash, so nobody can swap the code | `tools/publish.mjs`, `web/src/verify-core.js` (checks 3 to 5) |
+| Deterministic `0s` account | The pool address is derived from its code and starting state and has no access keys | `tools/publish.mjs create`, `web/src/verify-core.js` (checks 2 and 6) |
+| NEP-171 NFT records | `pump-N` and `hh-N` tokens, read with `nft_token` and `nft_total_supply`; `nft_transfer` is disabled on purpose (non-transferable records) | `contract/src/lib.rs` (NFT views), shown on every water point's page and on **Try it** |
+| NEAR on-chain random seed | `env::random_seed()` draws the households asked to vote, so a mechanic cannot know whom to bribe | `contract/src/lib.rs` (the sample draw, line ~229) |
+| near-sdk (Rust) | The pool contract: jobs, one-time-code voting, 70/30 payment, forfeit rule | `contract/` (21 unit tests in `contract/src/tests.rs`) |
+| near-kit | The Worker's relayer pays gas and signs calls; the tools sign testnet admin and demo calls | `web/src/worker.js`, `tools/` |
+| NEAR wallet (`@hot-labs/near-connect`) | Donors and mechanics sign with their own accounts | `web/src/wallet.js` |
+| Multi-signature admin | Registering a mechanic or adding a pump needs both signer accounts to approve the same action | `contract/src/lib.rs` (`approve_action`), `tools/admin.mjs` |
+| NEAR RPC and Explorer | The page reads the chain directly over RPC and links every transaction | `web/public/config.json`, `web/public/app.js` |
+
+About the NFT claim, precisely: the contract exposes the NEP-171 read interface for its records (`nft_token`, `nft_total_supply`, a disabled `nft_transfer`). It is not a full NEP-171 collection: there is no minting, no transfer and no royalties, because these are records of water points and households, not tradable assets. A pump's service history is the list of jobs for that pump.
+
 ## What NEAR gives, and what would work anywhere
 
 - **The address proves the rules.** A NEAR deterministic account's address is derived from its code and starting state, and it has no keys. The page recomputes that address in the browser, checks over RPC that there are no access keys, that the code is referenced by hash, and that the code stored on-chain is byte-identical to `evidence/borehole_pool.wasm`. This is the strongest NEAR-specific claim here.
 - **Measured costs on testnet.** Publishing the 230,074-byte code by hash burned 23.02 NEAR once. Creating the keyless pool from that code cost about 0.01 NEAR in fees.
 - **Gasless users.** A relayer pays gas, so villagers never hold NEAR. (This is a plain relayer; NEP-366 meta-transactions are not used. Other chains can do the same with paymasters.)
-- **What would work on any chain:** the repair rule itself. An EVM version using a factory, an immutable proxy and a paymaster could do most of it, with less readable accounts and no address-from-code check. We do not claim only NEAR can do this. NEAR fit is moderate.
+- **What would work on any chain:** the repair rule itself. An EVM version using a factory, an immutable proxy and a paymaster could do most of it, with less readable accounts and no address-from-code check. We do not claim only NEAR can do this. What NEAR adds is narrower and specific: an address that proves its own code, which a donor can check without trusting the deployer.
 - Nested sub-account names (`well-3.<pool>`) were planned and **cut**.
 
 ## Prior art, and what is different

@@ -14,6 +14,9 @@ const usedCache = new Map();
 let busy = false;
 let lastRoute = null;
 let lastChecks = null; // survives the periodic re-render
+const TRY = { pump: null, hh: 20, quote: "0.2", log: [] }; // the judge sandbox keeps its place across re-renders
+const NFT = new Map(); // nft_token reads, cached (a record never changes)
+let CARDS = null;
 
 // ---------------------------------------------------------------- chain reads (public RPC, direct)
 async function rpc(method, params) {
@@ -160,6 +163,7 @@ function route() {
   const m = h.match(/^\/pump\/(\d+)$/);
   if (m) return { name: "pump", id: Number(m[1]) };
   if (h === "/ledger") return { name: "ledger" };
+  if (h === "/try") return { name: "try" };
   if (h === "/about") return { name: "about" };
   return { name: "home" };
 }
@@ -183,6 +187,7 @@ function render() {
   const keep = { x: window.scrollX, y: window.scrollY };
   if (r.name === "pump") $main.innerHTML = pumpPage(r.id);
   else if (r.name === "ledger") $main.innerHTML = ledgerPage();
+  else if (r.name === "try") $main.innerHTML = tryPage();
   else if (r.name === "about") $main.innerHTML = aboutPage();
   else $main.innerHTML = homePage();
   $main.classList.toggle("home", r.name === "home");
@@ -198,7 +203,7 @@ function render() {
     });
     setupReveal();
   }
-  for (const id of ["msg", "msg-fund"]) {
+  for (const id of ["msg", "msg-fund", "msg-try"]) {
     const el = document.getElementById(id);
     if (el && lastMsg[id]) {
       el.className = `msg ${lastMsg[id].kind}`;
@@ -257,13 +262,15 @@ function homePage() {
   </div>
   <p class="poolline row between"><span>Pool account <a class="mono" href="${explorer(CONFIG.poolId)}" target="_blank" rel="noopener">${esc(CONFIG.poolId)}</a>. It also holds a small storage reserve of NEAR that is not part of the fund (account balance ${near(S.balance, 2)} NEAR).</span><span class="livebar" role="status"><i class="live-dot" aria-hidden="true"></i>Live from the chain, updated <span id="ago">just now</span></span></p>
 
+  <a class="trystrip reveal" href="#/try"><span><span class="kicker">For judges and curious visitors</span><b>Play every role: villager, mechanic, village vote</b><em>Real NEAR testnet transactions. No wallet needed.</em></span><span aria-hidden="true">&rarr;</span></a>
+
   <section class="sec reveal" aria-labelledby="pumps">
     <div class="sec-head"><div><span class="kicker">Water points</span><h2 id="pumps">The pumps this fund keeps running</h2></div></div>
     <ol class="plist">
     ${S.pumps
       .map((pm) => {
         const st = pumpState(pm);
-        return `<li><a href="#/pump/${pm.id}" aria-label="Open ${esc(pm.name)}"><b>${esc(pm.name)}</b><span class="ear">Earmarked <span class="num">${near(pm.earmark)}</span> NEAR</span>${chipFor(st.key)}<span class="go" aria-hidden="true">&rarr;</span></a></li>`;
+        return `<li><a href="#/pump/${pm.id}" aria-label="Open ${esc(pm.name)}"><b>${esc(pm.name)}<small class="nfttag">NFT pump-${pm.id}</small></b><span class="ear">Earmarked <span class="num">${near(pm.earmark)}</span> NEAR</span>${chipFor(st.key)}<span class="go" aria-hidden="true">&rarr;</span></a></li>`;
       })
       .join("") || `<li class="empty">No water points registered yet.</li>`}
     </ol>
@@ -290,6 +297,27 @@ function homePage() {
   </section>
 
   <section class="sec reveal" aria-label="Watch a repair"><div id="watch-slot"></div></section>
+
+  <section class="sec reveal" aria-labelledby="why-near">
+    <div class="sec-head"><div><span class="kicker">Why NEAR</span><h2 id="why-near">An address that proves its own rules</h2></div></div>
+    <div class="facts">
+      <div><b>The address is the proof</b><p>On NEAR, a deterministic account's address is derived from its code and starting state. This page recomputes it in your browser and compares it with the fund's address.</p></div>
+      <div><b>No key, no swap</b><p>The fund has no access keys, and its code is a global contract referenced by hash. The publisher cannot sign for it or change the code, and the chain says so.</p></div>
+      <div><b>Villagers hold no NEAR</b><p>A relayer pays the fee for reports and votes. Donors and mechanics sign with their own wallets. Only the relayer runs on this server.</p></div>
+    </div>
+    <div class="stack">
+      <span class="label">NEAR pieces used in this build</span>
+      <ul>
+        <li><b>NEAR testnet</b> holds the fund, the jobs and the ledger.</li>
+        <li><b>Global contract by hash</b>: the code cannot be swapped.</li>
+        <li><b>Deterministic <span class="mono">0s</span> account</b>: its address commits to its code and state.</li>
+        <li><b>NEP-171 NFT records</b>: <span data-nft-supply>...</span> in total, one per water point and per household. Read with <span class="mono">nft_token</span>.</li>
+        <li><b>NEAR on-chain random seed</b> draws the households who vote.</li>
+        <li><b>near-sdk</b> (Rust) contract, <b>near-kit</b> in the relayer, a <b>NEAR wallet</b> for donors and mechanics, the NEAR RPC and NEAR Explorer.</li>
+      </ul>
+    </div>
+    <p class="muted small facts-note">The repair rule itself could be written on another chain. What it would not have is an address that proves its own code, so a donor still has to trust whoever deployed it.</p>
+  </section>
 
   <section class="sec reveal" aria-labelledby="check">
     <div class="sec-head"><div><span class="kicker">Verify</span><h2 id="check">Check before you give</h2></div></div>
@@ -409,7 +437,8 @@ function pumpPage(id) {
 
   return `<p><a href="#/">&larr; All water points</a></p>
   <div class="row between"><h1 style="margin:0">${esc(pm.name)}</h1>${chipFor(st.key)}</div>
-  <p class="muted">Token <span class="mono">pump-${pm.id}</span> (a non-transferable record). Earmarked: <b class="num">${near(pm.earmark)}</b> NEAR. Shared pool free: <b class="num">${near(S.cfg.free)}</b> NEAR.</p>
+  <p class="muted">Earmarked: <b class="num">${near(pm.earmark)}</b> NEAR. Shared pool free: <b class="num">${near(S.cfg.free)}</b> NEAR. <a href="#/try">Play every role on this site</a> without a wallet.</p>
+  <div class="card"><div class="row between"><b>NFT record <span class="mono">pump-${pm.id}</span></b><span class="chip">NEP-171 read, non-transferable</span></div>${nftBox("pump-" + pm.id)}<p class="muted small">Read live from <span class="mono">nft_token</span> on the pool contract. <span class="mono">nft_transfer</span> is disabled on purpose: this is a record of the water point, not a tradable asset.</p></div>
 
   <div class="grid cols2">
     <div class="card">
@@ -460,6 +489,162 @@ function ledgerPage() {
     }</tbody></table></div>`;
 }
 
+// ---------------------------------------------------------------- NFT records (NEP-171 read interface of the pool)
+const nftHtml = (t) =>
+  `<dl class="nft"><dt>token_id</dt><dd class="mono">${esc(t.token_id)}</dd><dt>owner_id</dt><dd class="mono">${esc(t.owner_id)}</dd><dt>title</dt><dd>${esc(t.title)}</dd><dt>description</dt><dd>${esc(t.description)}</dd></dl>`;
+const nftBox = (id) => `<div data-nft="${esc(id)}">${NFT.has(id) ? (NFT.get(id) ? nftHtml(NFT.get(id)) : "No such record.") : "Reading nft_token from the chain..."}</div>`;
+async function fillNft() {
+  for (const el of document.querySelectorAll("[data-nft]")) {
+    const id = el.dataset.nft;
+    if (NFT.has(id)) continue;
+    try {
+      NFT.set(id, await view("nft_token", { token_id: id }));
+      if (el.isConnected) el.innerHTML = NFT.get(id) ? nftHtml(NFT.get(id)) : "No such record.";
+    } catch {
+      if (el.isConnected) el.textContent = "Could not read the record just now.";
+    }
+  }
+  const sup = document.querySelectorAll("[data-nft-supply]");
+  if (sup.length) {
+    try {
+      const n = await view("nft_total_supply");
+      sup.forEach((e) => (e.textContent = n));
+    } catch { /* leave the placeholder */ }
+  }
+}
+
+// ---------------------------------------------------------------- judge sandbox: play every role with real testnet transactions
+async function sandboxCred(hh, action) {
+  CARDS ??= await fetch("/demo/sandbox-cards.json").then((r) => r.json());
+  for (let slot = 0; slot < SLOTS; slot++) {
+    if (await view("is_slot_used", { hh, slot })) continue;
+    const row = CARDS.cards[hh].rows[slot];
+    const code = action === ACTIONS.report ? row.report : action === ACTIONS.yes ? row.yes : row.no;
+    return credential(LEVELS, SLOTS, hh, slot, action, code);
+  }
+  throw new Error(`hh-${hh} has used every row on its printed card. Pick another household.`);
+}
+const sandbox = (method, args) => post("/api/sandbox", { method, args });
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+function tryRun(label, fn) {
+  return run(document.getElementById("msg-try"), label, async () => {
+    const out = await fn();
+    if (out && out.ok !== false) {
+      if (!out.skipLog) TRY.log.unshift({ label, hash: out.hash });
+      TRY.log.length = Math.min(TRY.log.length, 14);
+      await sleep(5000); // the public RPC serves finalised state a few seconds late
+    }
+    return out;
+  });
+}
+const hhOptions = (sel) => Array.from({ length: S.cfg.total_households }, (_, i) => `<option value="${i}"${i === sel ? " selected" : ""}>hh-${i}</option>`).join("");
+
+function tryPage() {
+  const pumps = S.pumps;
+  if (!pumps.length) return `<h1>Try every role</h1><div class="card empty">No water points registered yet.</div>`;
+  if (TRY.pump === null || !pumps.find((x) => x.id === TRY.pump)) TRY.pump = pumps[0].id;
+  const pm = pumps.find((x) => x.id === TRY.pump);
+  const st = pumpState(pm), j = st.job, p = S.cfg.params;
+  const who = {
+    villager: `<span class="role">Villager</span> signed by the relayer, which only passes on a household's one-time card code. The pool checks the code on-chain.`,
+    mechanic: `<span class="role">Mechanic</span> signed by <span class="mono">bh-relay.testnet</span>, an account registered on the pool as a sandbox mechanic. Real mechanics use their own wallet on the water point's page.`,
+  };
+  let stage;
+  if (!j) {
+    stage = `<h3>Step 1. A villager reports the pump broken</h3>
+      <p class="muted">${who.villager}</p>
+      <div class="row fields"><label>Household<select id="try-hh">${hhOptions(TRY.hh)}</select></label></div>
+      <button data-try="report">Report this pump broken</button>`;
+  } else if (j.status === "Reported") {
+    stage = `<h3>Step 2. A mechanic accepts the job</h3>
+      <p class="muted">${who.mechanic} The price is reserved from the fund.</p>
+      <div class="row fields"><label>Quote<select id="try-quote">${["0.1", "0.2", "0.3"].map((q) => `<option value="${q}"${q === TRY.quote ? " selected" : ""}>${q} NEAR</option>`).join("")}</select></label></div>
+      <button data-try="accept">Accept the job as the sandbox mechanic</button>`;
+  } else if (j.status === "Accepted") {
+    stage = `<h3>Step 3. The mechanic says it is fixed</h3>
+      <p class="muted">${who.mechanic} Posting the fix draws ${p.sample_size} random households, using NEAR's on-chain random seed.</p>
+      <button data-try="fix">Post the fix</button>
+      ${j.attempts > 0 ? `<p class="muted">The village said the first fix did not work, so the mechanic is trying again.</p>` : ""}`;
+  } else if (j.status === "Voting") {
+    const replied = new Set([...j.yes, ...j.no]);
+    const pending = j.eligible.filter((h) => !replied.has(h));
+    const need = Math.min(p.min_replies, j.eligible.length);
+    const windowEnd = BigInt(j.draw_ns) + BigInt(p.vote_window_ns);
+    const late = nowNs() > windowEnd && j.yes.length + j.no.length < need;
+    stage = `<h3>Step 4. The village checks the pump</h3>
+      <p class="muted">${who.villager} ${need} replies are needed and two thirds must say it works. So far: ${j.yes.length} works, ${j.no.length} still broken.</p>
+      <ul class="voters">${pending
+        .map((h) => `<li><b>hh-${h}</b><span class="row"><button class="secondary" data-try="vote" data-hh="${h}" data-works="1">It works</button><button class="secondary" data-try="vote" data-hh="${h}" data-works="0">Still broken</button></span></li>`)
+        .join("") || `<li class="muted">Every asked household has replied.</li>`}</ul>
+      <div class="row" style="margin-top:12px"><button data-try="allyes">Make the village say it works</button>${late ? `<button class="secondary" data-try="redraw">Too few replied: ask more households</button>` : ""}</div>`;
+  } else if (j.status === "Approved") {
+    const end = BigInt(j.approved_ns) + BigInt(p.hold_ns);
+    const due = nowNs() >= end;
+    stage = `<h3>Step 5. Paid, with a share held</h3>
+      <p>The mechanic was paid <b class="num">${near(j.paid)}</b> NEAR at once. <b class="num">${near(j.held)}</b> NEAR is held. ${due ? "The hold has passed." : `It can be released in <span class="num" data-countdown="${end}">${fmtDur(end - nowNs())}</span>.`} Broken-again reports so far: ${j.rebroken.length} of ${p.rebroken_needed}.</p>
+      ${due ? `<button data-try="release">Release the held share to the mechanic</button>` : ""}
+      <h3 style="margin-top:18px">Or: it breaks again during the hold</h3>
+      <p class="muted">${who.villager} Two different households must report it. Then the held share goes back to the fund.</p>
+      <div class="row fields"><label>Household<select id="try-hh">${hhOptions(TRY.hh)}</select></label></div>
+      <button class="danger" data-try="report">Report broken again</button>`;
+  } else {
+    stage = `<h3>This job has ended: ${esc(j.status)}</h3><p class="muted">Pick another water point to start a fresh repair.</p>`;
+  }
+  const hh = TRY.hh;
+  return `<h1>Try every role</h1>
+  <p class="lead">Play a whole repair yourself, on NEAR testnet. Every button sends a real transaction to the pool contract and shows its link. No wallet is needed. The money is test money.</p>
+  <div class="roles">
+    <div><span class="role">Villager</span><p>Reports and votes with a one-time code from a printed card. The relayer pays the gas.</p></div>
+    <div><span class="role">Mechanic</span><p>Accepts a job and posts the fix. Here a sandbox account signs; on the water point's page you use your own wallet.</p></div>
+    <div><span class="role">Donor</span><p>Gives from a NEAR wallet and signs the payment. <a href="#/pump/${pm.id}">Open this water point</a> to give.</p></div>
+    <div><span class="role">Observer</span><p>Reads the public ledger and each pump's and household's NFT record. Nothing to sign.</p></div>
+  </div>
+  <div class="card">
+    <div class="row between"><label>Water point<select id="try-pump">${pumps.map((x) => `<option value="${x.id}"${x.id === TRY.pump ? " selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label>${chipFor(st.key)}</div>
+    <div style="margin-top:18px">${stage}</div>
+    <div class="msg" id="msg-try" role="status"></div>
+  </div>
+  <div class="grid cols2">
+    <div class="card"><div class="row between"><b>NFT record of this water point</b><span class="chip">NEP-171 read</span></div>${nftBox("pump-" + pm.id)}</div>
+    <div class="card"><div class="row between"><b>NFT record of household hh-${hh}</b><span class="chip">non-transferable</span></div>${nftBox("hh-" + hh)}</div>
+  </div>
+  ${TRY.log.length ? `<h2>What you sent</h2><ol class="txlog">${TRY.log.map((e) => `<li>${esc(e.label)}${e.hash ? txLink(e.hash) : ""}</li>`).join("")}</ol>` : ""}
+  <p class="muted small">Each action waits a few seconds for the public RPC to catch up. <a href="#/ledger">The public ledger</a> shows the same events.</p>`;
+}
+
+function tryAct(kind, d) {
+  const pm = S.pumps.find((x) => x.id === TRY.pump);
+  const j = pm && pumpState(pm).job;
+  const hhSel = () => Number(document.getElementById("try-hh")?.value ?? TRY.hh);
+  if (kind === "report") {
+    const hh = hhSel();
+    return tryRun(`hh-${hh} reports the pump broken`, async () => relay("report_broken", { pump: TRY.pump, cred: await sandboxCred(hh, ACTIONS.report) }));
+  }
+  if (kind === "accept") {
+    const price = toYocto(document.getElementById("try-quote").value).toString();
+    return tryRun("Sandbox mechanic accepts the job", () => sandbox("accept_job", { job: j.id, price }));
+  }
+  if (kind === "fix") return tryRun("Sandbox mechanic posts the fix", () => sandbox("post_fix", { job: j.id }));
+  if (kind === "vote") {
+    const hh = Number(d.hh), works = d.works === "1";
+    return tryRun(`hh-${hh} says ${works ? "it works" : "it is still broken"}`, async () => relay("vote", { job: j.id, works, cred: await sandboxCred(hh, works ? ACTIONS.yes : ACTIONS.no) }));
+  }
+  if (kind === "allyes") {
+    return tryRun("The village says it works", async () => {
+      const p = S.cfg.params, replied = new Set([...j.yes, ...j.no]);
+      const need = Math.max(1, Math.min(p.min_replies, j.eligible.length) - replied.size);
+      for (const h of j.eligible.filter((x) => !replied.has(x)).slice(0, need)) {
+        const out = await relay("vote", { job: j.id, works: true, cred: await sandboxCred(h, ACTIONS.yes) });
+        if (out.ok === false) return out;
+        TRY.log.unshift({ label: `hh-${h} says it works`, hash: out.hash });
+      }
+      return { ok: true, skipLog: true };
+    });
+  }
+  if (kind === "redraw") return tryRun("Asking more households", () => relay("redraw_sample", { job: j.id }));
+  if (kind === "release") return tryRun("Releasing the held share", () => relay("release_held", { job: j.id }));
+}
+
 function aboutPage() {
   return `<h1>What this is not, and where it can fail</h1>
   <p class="lead">Read this before relying on anything here.</p>
@@ -479,6 +664,14 @@ function aboutPage() {
 // ---------------------------------------------------------------- interactions
 function wire(r) {
   document.getElementById("runcheck")?.addEventListener("click", runCheck);
+  fillNft();
+  if (r.name === "try") {
+    $main.querySelectorAll("[data-try]").forEach((b) => b.addEventListener("click", () => tryAct(b.dataset.try, b.dataset)));
+    document.getElementById("try-pump")?.addEventListener("change", (e) => { TRY.pump = Number(e.target.value); render(); });
+    document.getElementById("try-hh")?.addEventListener("change", (e) => { TRY.hh = Number(e.target.value); render(); });
+    document.getElementById("try-quote")?.addEventListener("change", (e) => { TRY.quote = e.target.value; });
+    return;
+  }
   if (r.name !== "pump") return;
   const id = r.id;
   const msg = document.getElementById("msg");

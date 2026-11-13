@@ -3,6 +3,9 @@ import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { build } from "esbuild";
 
 mkdirSync("web/public/evidence", { recursive: true });
+// the sample household cards are already public in docs/; the sandbox page uses them for one-click villagers
+mkdirSync("web/public/demo", { recursive: true });
+copyFileSync("docs/test-cards.json", "web/public/demo/sandbox-cards.json");
 for (const f of ["borehole_pool.wasm", "state-init.json", "publish.json"]) copyFileSync(`evidence/${f}`, `web/public/evidence/${f}`);
 await build({
   entryPoints: ["web/src/verify-core.js"],
