@@ -4,3 +4,4 @@ node_modules/
 !evidence/*.wasm
 .dev.vars
 .wrangler/
+.codex-pass.md
