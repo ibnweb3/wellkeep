@@ -594,3 +594,28 @@ document.getElementById("gocheck")?.addEventListener("click", () => {
   document.getElementById("check")?.scrollIntoView({ behavior: "smooth", block: "start" });
   runCheck();
 });
+
+// Typewriter for the opening fact. The full text stays in the DOM (screen readers get it at once); sighted
+// visitors see it typed. Skipped when the visitor prefers reduced motion.
+(function typewriter() {
+  const span = document.querySelector("#hero-fact .tw");
+  if (!span || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const full = span.textContent;
+  span.innerHTML = `<span class="sr">${esc(full)}</span><span aria-hidden="true"><span class="tw-d typing"></span><span class="tw-r">${esc(full)}</span></span>`;
+  const done = span.querySelector(".tw-d"), rest = span.querySelector(".tw-r");
+  let n = 0;
+  // start once the hero is actually shown (it stays hidden until the chain data has loaded)
+  const hero = document.getElementById("hero");
+  const wait = setInterval(() => {
+    if (hero.hidden) return;
+    clearInterval(wait);
+    setTimeout(() => {
+      const t = setInterval(() => {
+        n += 1;
+        done.textContent = full.slice(0, n);
+        rest.textContent = full.slice(n);
+        if (n >= full.length) { clearInterval(t); done.classList.remove("typing"); }
+      }, 30);
+    }, 700);
+  }, 100);
+})();
