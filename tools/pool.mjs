@@ -4,7 +4,7 @@ import { buildLevels, credential, fromHex, ACTIONS } from "../web/public/merkle.
 
 export async function loadCards() {
   const leaves = JSON.parse(readFileSync("web/public/demo/leaves.json", "utf8"));
-  const cards = JSON.parse(readFileSync("web/public/demo/cards.json", "utf8"));
+  const cards = JSON.parse(readFileSync("docs/test-cards.json", "utf8"));
   const levels = await buildLevels(leaves.leaves.map(fromHex));
   return { levels, slots: leaves.slots, cards: cards.cards, root: leaves.root };
 }

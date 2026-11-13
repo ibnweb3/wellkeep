@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { leafHash, buildLevels, proofFor, leafIndex, fromHex, toHex, ACTIONS } from "../web/public/merkle.js";
 
 const leaves = JSON.parse(readFileSync("web/public/demo/leaves.json", "utf8"));
-const cards = JSON.parse(readFileSync("web/public/demo/cards.json", "utf8"));
+const cards = JSON.parse(readFileSync("docs/test-cards.json", "utf8"));
 const sha = (b) => new Uint8Array(createHash("sha256").update(b).digest());
 
 test("leaf hash matches the golden vector pinned in the Rust tests", async () => {
