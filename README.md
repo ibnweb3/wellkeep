@@ -134,6 +134,7 @@ What is different: the fund is public and keyless, so a donor can see and check 
 - **A committee can be captured.** The DAO is as honest as its council. Quotes within a trusted mechanic's limit need no approval at all.
 - **Real money.** Nigeria and Kenya tightened stablecoin rules in November 2026, and I found no evidence of rural mechanics using stablecoins. A real deployment needs a licensed off-ramp partner.
 - **Donor demand is unproven.** I found no evidence that small donors would fund maintenance over new wells.
+- **"Five-mile walk" is an illustration.** The headline is rhetoric; I have no source for a typical distance. The "about one in four handpumps out of order" line is from Foster and others (2018), whose abstract says approximately one in four handpumps in sub-Saharan Africa are non-functional at any point in time; the paper warns that definitions of "functional" differ.
 - **Not tested with any village.** It needs a field pilot.
 
 ## Evidence

@@ -1,120 +1,89 @@
 # SCOPE: WellKeep (community water-point repair fund on NEAR)
 
-Status: approved by the owner 2026-11-12; amended 2026-11-13 with what actually got built (see "Changes made while building"). Development ends 2026-11-14 23:59 UTC.
-Tracks: NFTs + Real-World Money.
+Status: first approved by the owner 2026-11-12. Rebuilt as "v2" on 2026-11-14 after the owner asked for a strong fit to three tracks instead of two weak ones. This file describes what is built now; the first version's choices that v2 replaced are listed at the end. Development ends 2026-11-14 23:59 UTC.
+Tracks: NFTs That Do Something, Real-World Money, Social Money.
 
 ## One-line idea
 
-A donor pays for a borehole; this is the public repair fund that keeps it working. Nobody holds the money. A mechanic is paid only when villagers confirm the fix, and every payment is public.
+A donor pays for a borehole; this is the public repair fund that keeps it working. Every water point is an NFT and its own keyless account holding its repair money in USDC. A village committee (a Sputnik DAO) holds the NFTs. A mechanic is paid only when villagers confirm the fix, and every payment is public.
 
 ## Who it is for
 
-The donor (or diaspora giver) who funded a pump and does not want it to fail for lack of maintenance. The villagers use a printed card and an SMS or shared phone. The mechanic is the only person who handles money.
+The donor (or diaspora giver) who funded a pump and does not want it to fail for lack of maintenance. The villagers use a printed card and an SMS or shared phone. The mechanic is the only person who handles money. The committee decides on big quotes.
 
-## How it works
+## How it works (as built)
 
-1. A donor sends money into the community's pooled repair fund (the whole pool, or earmarked for one named pump).
-2. The fund account has no access keys. Money leaves only through the repair rule.
+1. A donor sends USDC (`ft_transfer_call`) to one pump's account or to the shared pool.
+2. The pool and every pump account have no access keys. Money leaves a pump's account only when the pool tells its vault to pay, and the pool does that only through the repair rule.
 3. Any household can report "pump broken" using a one-time code from its card. That opens a job.
-4. A registered mechanic accepts the job and posts that it is fixed.
-5. The reporting households, plus about 10 households picked at random, say whether the pump now works. A minimum number of replies and a two-thirds yes are needed.
-6. On approval 70% is paid. The other 30% is held for 14 days and released unless a household reports the pump broken again.
-7. Everything is public: balance, jobs, votes, payments.
+4. A registered mechanic quotes a price. A quote within the mechanic's track-record limit reserves the money at once. A larger quote waits for the pump's steward, the holder of the pump's NFT. For the Village A pumps the steward is the village committee DAO, so approval is a DAO proposal.
+5. The mechanic posts the fix. The reporting households, plus eight random households, say whether the pump works. At least five replies and two thirds yes are needed.
+6. On approval 70% is paid from the pump's own account. The other 30% is held (one hour on this testnet build) and released unless two different households report the pump broken again.
+7. Everything is public: balances (read from the USDC contract), jobs, votes, payments, invoices, mechanic records, DAO proposals.
 
 ## Why this design (what the field research changed)
 
 Source: the research report the owner commissioned (not independently re-checked; I rely only on the peer-reviewed parts and mark the rest weak).
 
 - Scheduled visits lose to on-demand repair (Rwanda trial; delays over 24 h doubled diarrhea in Kwale) -> a report opens the job, no fixed schedule.
-- Single-pump funds fail (pumps can break up to 11 times a year; FundiFix pools) -> one pooled fund, with optional earmarks per pump.
+- Single-pump funds fail (pumps can break up to 11 times a year; FundiFix pools) -> a shared pool plus a separate account per pump that is topped up from the pool when a job needs more than the pump holds.
 - Majority-of-all-households voting is unreachable (about 20% of rural areas lack signal, rural literacy 54% in Nigeria, households move) -> reporters plus a random sample, with a minimum number of replies.
-- A mechanic bond punishes honest mechanics (worn parts, dry sources) -> no bond; the 30% hold is the incentive.
-- Gatherings and shared phones remove secrecy -> private one-time scratch codes; gathering only as a labelled fallback.
-- Fingerprints: dropped. Reason: measured failure rates (Kenya 4.8%, Nigeria at least 10%) and Nigeria's data-protection law treating fingerprints as sensitive data. (I earlier said manual work wears fingerprints; the research found no statistical basis for that, so I do not claim it.)
+- A mechanic bond punishes honest mechanics (worn parts, dry sources) -> no bond; the held 30% is the incentive, and track record raises how much a mechanic may quote without approval.
+- Gatherings and shared phones remove secrecy -> private one-time scratch codes.
+- Fingerprints: dropped (measured failure rates and data-protection law).
 
-## IN (what gets built)
+## Built (IN)
 
-1. **Pool contract (Rust, NEAR testnet)**, published as a global contract and referenced BY HASH. Functions: fund (with optional pump earmark), report_broken, accept_job, post_fix, vote, finalize, release_held, report_rebroken, roll/mechanic changes (2-of-2 by two signer accounts), and a household/pump NFT view (NEP-171 reads).
-2. **Keyless fund by code hash.** The pool account is created with no access keys.
-3. **"Check before you give" verifier.** One click in the UI recomputes the deterministic `0s` address from the code hash and initial storage, then confirms by RPC: zero access keys, code referenced by hash (not by publisher), roll hash matches. Results are recorded in `evidence/`.
-4. **One-time scratch codes.** Per-household, per-answer codes verified against a Merkle root committed at enrolment. (Cut line: if this slips, fall back to relayer-submitted votes from household sub-account keys, stated in the README.)
-5. **Random sample.** At review time the contract draws about 10 households using the on-chain random seed. Limit stated: block producers have slight influence over the seed; acceptable at these stakes.
-6. **Gasless voting.** A relayer account submits the transaction and pays the gas, so households never hold NEAR. The one-time code is the credential, checked on-chain; the relayer has no special rights. (NEP-366 meta-transactions are NOT used: they would need a signing key per household, which the printed-code design avoids.)
-7. **Two-stage payment** with a hold period (shortened to minutes in the demo build, clearly labelled).
-8. **Named pump accounts: CUT.** Pumps are records inside the pool (token ids `pump-0`, `pump-1`, ...) with an earmark ledger; donors fund a pump by number. Nested sub-account names such as `well-3.<pool>` were not built (each would need its own forwarding contract and another publish).
-9. **NFT views.** Household pass and pump record exposed as non-transferable NEP-171 tokens (transfer is disabled). Honest purpose: identity and service history, not a tradable asset.
-10. **Web UI (Cloudflare Worker static assets):** community list and pump page, fund balance, report/vote screens (simulated card), job timeline, the verifier, and a public ledger.
-11. **Tests, README, evidence folder.**
-12. **Measured costs:** real testnet cost of creating the pool account, a pump account, and publishing the code (recorded, not copied from docs).
-
-## Changes made while building
-
-- Nested pump accounts cut; NEP-366 not used (see IN 6 and 8).
-- The mechanic cash-out is not simulated in the UI at all; the UI and README say it is not built.
-- The live pool holds a separate 3 NEAR storage reserve (not part of the tracked fund) so storage growth cannot starve payouts.
-- Both signer accounts, the mechanic, the donor and the relayer are throwaway testnet accounts controlled by the builder. In a real deployment the signers would be two independent organisations.
-- The web page reads the chain directly through a public RPC; only the relayer, the demo mechanic and the demo donor go through the Worker.
+1. **Pool contract (Rust, near-sdk)**, a global contract referenced BY HASH, on a keyless deterministic `0s` account. Reports, quotes, steward approval, one-time-code voting, random sample, two-stage payment, forfeit rule, two-signer admin.
+2. **Vault contract (no SDK, 3.9 KB)**, embedded in the pool. The pool creates one keyless sub-account `pump-N.<pool>` per water point from it. It can pay only when its parent pool calls it.
+3. **NEP-171 NFTs.** `pump-N` transfers and carries stewardship (approve big quotes, set the pump's quote cap); `hh-N` household passes are credentials and do not transfer. Holder history and per-pump totals are on-chain.
+4. **NEP-141 money.** Circle's testnet USDC. Donations by `ft_transfer_call`; payouts by the vault's `ft_transfer`; the pool registers mechanics and vaults at the token.
+5. **Reputation tiers.** A mechanic's score (finished jobs minus two per forfeited share) sets an automatic quote limit: 1, 2 or 4 USDC.
+6. **Village committee.** A Sputnik DAO (`wellkeep-village.sputnikv2.testnet`, 3 council accounts, 2 of 3) holds the Village A pump NFTs. Village B pumps are held by the sandbox account so a visitor can play the steward.
+7. **"Check before you give" verifier.** Recomputes the pool's address from its code and starting state, and checks by RPC: zero keys, code by hash, code identical to the repository wasm, rules match, and every pump account has zero keys and runs the exact vault code.
+8. **Gasless villagers.** A relayer pays the gas for reports and votes; the one-time code is the credential, checked on-chain.
+9. **Web app (Cloudflare Worker static assets).** Water points, pump pages with steward desk, invoices and CSV, public ledger, community (mechanic records and DAO proposals), a sandbox to play every role, the verifier.
+10. **Tests, README, evidence.** 38 contract tests, JS tests, a live run on real USDC, a scratch run with a mock token.
 
 ## OUT (not built, and said so)
 
-- Real mobile money, cash, or any fiat on-ramp or off-ramp. The mechanic cash-out is a labelled SIMULATION.
-- The SMS gateway. The SMS path is described, not wired (the gateway phone is shared with other projects).
-- NEAR Intents top-ups. Intents has no testnet. Shown as a labelled simulation; at most one mainnet dry quote if the owner approves, never real funds.
-- Sensors or accelerometers. A sensor is the stronger verifier (FundiFix uses them); this vote is the cheap fallback where sensors are not affordable. The design leaves a verifier slot, not built.
-- Biometrics, photo/GPS proof, mainnet deployment, real stablecoins, any real personal data.
-
-## 5-step demo flow (what a judge can do)
-
-1. **Check before you give.** Open the pool page, press Verify. See the recomputed `0s` address match, zero access keys, code by hash.
-2. **Fund.** A donor sends testnet NEAR to the pool, earmarked for a pump. Balance and public ledger update.
-3. **Report.** A household enters a card code: "pump broken". A job opens.
-4. **Fix and vote.** The mechanic posts the fix. The reporter and the randomly drawn sample vote with their codes. At threshold, 70% is paid to the mechanic's account.
-5. **Hold and release.** After the (shortened) hold period the final 30% is released. Alternative path: a "broken again" report freezes it.
+- Real mobile money, cash, or any fiat on-ramp or off-ramp.
+- The SMS gateway. The SMS path is described, not wired.
+- NEAR Intents top-ups. Intents has no testnet.
+- A meta-transaction relay for mechanics and stewards (they sign with their own wallet).
+- Crediting a plain USDC transfer sent straight to a pump's account (it is held safely but uncounted until `ft_transfer_call`).
+- Sensors, biometrics, photo or GPS proof, mainnet deployment, real stablecoins, any real personal data.
+- A real wallet-signed donation, quote or NFT transfer was not completed in my own test session. The relayer, sandbox, DAO and command-line paths were.
 
 ## NEAR centrality: the plain answer
 
 What NEAR makes better or easier here:
-- **The address proves the rules.** A deterministic account's address is derived from its code and starting data, with no keys. A donor can recompute it and check by RPC that nobody holds a key and the code cannot change (referenced by hash). This is the best claim we have.
-- **Gasless users.** NEP-366 meta-transactions let villagers act without ever holding NEAR.
-- **Cheap accounts at scale.** One global contract can serve any village; docs say using it costs under 0.001 NEAR. We will measure and record the real number.
-- **Readable nested names**: NOT delivered (cut, see IN 8). Not claimed.
-- **NEP-366 gasless transactions**: NOT used; a plain relayer pays gas.
-- **Intents** would let diaspora donors pay from any chain, but this cannot be tested on testnet.
+- **The address proves the rules.** A deterministic account's address is derived from its code and starting data, with no keys. A donor can recompute it and check by RPC that nobody holds a key and the code cannot change.
+- **The token is the account.** A water point's NFT and the keyless account that holds its money are one thing: a sub-account the contract creates with no key. Transferring the NFT moves control, not the money.
+- **A committee that is an ordinary DAO.** The NFT can be held by a Sputnik DAO, so approvals need no new multisig.
 
-What would work on any chain: the repair rule itself (reports, jobs, sample vote, two-stage payment). An EVM version with a factory contract, a paymaster and an immutable proxy could do most of it, with less readable names and no address-from-code check. We will not claim that only NEAR can do this. Centrality is moderate; this is the honest assessment.
+What would work on any chain: the repair rule itself (reports, quotes, sample vote, two-stage payment). An EVM version with a factory, per-pump contracts and a paymaster could do much of it. We do not claim that only NEAR can do this.
 
-## NFT and Real-World Money fit
-
-- **NFTs:** household pass (identity for voting) and pump record (service history). These are non-transferable records. The mechanic (keyless account holding money) is the organizers' own prompt, but it is also the most common NFT idea in the field (about 19 of 43 NFT entries), so this is not novel as a mechanism; the novelty is the domain.
-- **Real-World Money:** donors' money pays a real-world worker for real-world work. In this build the money is testnet NEAR and the cash-out is simulated, so it demonstrates the flow, not a live payment rail. Nigeria and Kenya tightened stablecoin rules in November 2026, and no evidence was found of rural mechanics using stablecoins; a real deployment needs a licensed off-ramp partner.
-
-## Honest limits (will be in the README)
+## Honest limits
 
 - A vote is the community saying the pump works, not proof that it does.
-- Roll enrolment is a one-time trust point (two independent signers reduce it).
+- Roll enrolment is a one-time trust point (two independent signers reduce it). On this testnet build both signers, and the DAO's three council accounts, are accounts the builder controls.
+- On the Village B pumps the sandbox account is both steward and sandbox mechanic; the contract does not forbid that, and a real committee should not do it.
 - Cards can be bought or stolen; keep payouts smaller than the cost of buying a quorum.
-- Votes are linkable to a card number by anyone who knows which card belongs to whom; threats cannot be prevented by the chain.
-- A shared phone or gateway can drop votes (censor) but cannot forge or flip them.
+- Votes are linkable to a card number by anyone who knows which card belongs to whom.
 - Where there is almost no phone coverage, this does not work.
-- Prior art already works: FundiFix (pooled fund, M-Pesa, sensors, 3-day repairs). Blockchain water-maintenance pilots were not found; one 2020 IBM/SweetSense blockchain pilot is cited without status. The difference offered: a donor-visible, keyless, pooled fund where nobody holds the money.
+- Prior art already works: FundiFix (pooled fund, M-Pesa, sensors, 3-day repairs). The difference offered: a donor-visible, keyless, pooled fund where nobody holds the money.
 - Donor demand for maintenance (vs new wells) is unproven.
 - Not tested with any village. This is a prototype that needs a field pilot.
 
-## Risks and cut lines (2 days)
+## What v2 replaced from the first version
 
-| Risk | Plan |
-| --- | --- |
-| No Rust toolchain on this PC | Build in WSL Ubuntu (present). Fallback: Docker. |
-| Global-contract publishing burns testnet NEAR (about 10 per 100 KB) | Keep wasm small; check faucet amounts early. Fallback: deploy to the pool account directly and delete its keys, and say honestly that this is "keys removed", not "by hash". |
-| Deterministic-account creation tooling unfamiliar | Test with the docs' FT example first. |
-| Merkle codes take too long | Cut to relayer-signed votes (see IN 4). |
-| Named pump accounts take too long | Cut (see IN 8). |
-
-Order of work: (1) toolchain + a deterministic account test, (2) contract + tests, (3) testnet deploy + evidence, (4) UI, (5) README, (6) de-vibe review pass after a checkpoint commit.
+- Pumps were records inside one pool (a ledger line), not accounts; the NFTs were read-only and non-transferable. Now each pump is a real keyless account and its NFT transfers.
+- The money was testnet NEAR; now it is USDC, with invoices and a CSV.
+- Mechanics were an allow-list; now they have a public record and a trust-based quote limit, and larger quotes need the steward or a DAO vote.
+- The first version's pool (`0s4123b90f113c99ea1492d8ef8e658f0890153193`) and wasm (`evidence/borehole_pool.wasm`) are kept as history only.
 
 ## Owner actions (not done by me)
 
-- Approve the public repo creation and the push (account `ibnweb3`).
-- Decide whether the README names the sibling entry (this links two identities).
-- Record/post the X demo (they post it), and submit the form with a mainnet NEAR payout account.
+- Record/post the X demo (the owner posts it), and submit the form with a mainnet NEAR payout account and the three tracks.
 - Tell me when to record the demo video.

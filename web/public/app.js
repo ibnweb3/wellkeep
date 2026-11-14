@@ -695,6 +695,17 @@ function ledgerPage() {
 }
 
 // ---- mechanic records and the village committee
+/** A DAO proposal in plain words: the function it calls on the pool and the job it is about. */
+function propText(p) {
+  try {
+    const a = p.kind.FunctionCall.actions[0];
+    const job = JSON.parse(atob(a.args)).job;
+    const verb = { steward_approve: "Approve the quote on", steward_reject: "Turn down the quote on", nft_transfer: "Hand over the pump (nft_transfer), job" }[a.method_name] ?? a.method_name;
+    return `${verb} job #${job}`;
+  } catch {
+    return p.description;
+  }
+}
 function communityPage() {
   const t = S.cfg.params;
   const d = S.dao;
@@ -719,7 +730,7 @@ function communityPage() {
       ? `<p class="muted">The committee is a Sputnik DAO, ${acctLink(CONFIG.dao, CONFIG.dao)}. It holds the NFTs of the water points it stewards, so its council votes on any quote above a mechanic's limit. Council: ${d.council.map((c) => `<span class="mono">${esc(c)}</span>`).join(", ")}. A proposal passes with more than ${d.threshold ? `${d.threshold[0]}/${d.threshold[1]}` : "half"} of the council (2 of 3). Each proposal needs a ${near(d.bond, 0)} NEAR bond, returned afterwards.</p>
          <div class="card tablewrap"><table>
            <thead><tr><th>#</th><th>Proposal</th><th>Council votes</th><th>Status</th></tr></thead>
-           <tbody>${props.map((p) => `<tr><td class="num">${p.id}</td><td>${esc(p.description)}</td><td class="num">${votes(p)}</td><td>${esc(p.status)}</td></tr>`).join("") || `<tr><td colspan="4" class="empty">No proposals yet.</td></tr>`}</tbody></table></div>`
+           <tbody>${props.map((p) => `<tr><td class="num">${p.id}</td><td>${esc(propText(p))}</td><td class="num">${votes(p)}</td><td>${esc(p.status)}</td></tr>`).join("") || `<tr><td colspan="4" class="empty">No proposals yet.</td></tr>`}</tbody></table></div>`
       : `<p class="muted">The committee could not be read just now.</p>`
   }`;
 }
@@ -879,6 +890,7 @@ function aboutPage() {
     <li><b>The stewards on this demo are test accounts.</b> The village committee is a real Sputnik DAO, but its three council accounts are ours. A real village would choose its own people.</li>
     <li><b>Direct gifts to a pump's account.</b> Send USDC with <span class="mono">ft_transfer_call</span> (the buttons do this) so the pool records it. A plain transfer to a pump's account is held safely but is not counted by the pool until it is credited.</li>
     <li><b>Gas.</b> Villagers and the sandbox are gasless through the relayer. Real mechanics and stewards sign with their own wallet and need a little testnet NEAR; a full meta-transaction relay for them is not built.</li>
+    <li><b>"Five-mile walk" is an illustration, not a measurement.</b> The headline is rhetoric; I have no source for a typical distance, and the distance varies enormously between places.</li>
     <li><b>The problem is real, the numbers are not ours.</b> The "about one in four handpumps out of order" line comes from a review of field data from sub-Saharan Africa and Asia-Pacific (<a href="https://waterpointdata.org/wp-content/uploads/2020/11/Functionality-of-handpump-water-supplies.pdf" target="_blank" rel="noopener">Foster and others, Functionality of handpump water supplies</a>). The review itself warns that "functional" is defined differently from source to source, so treat it as an order of magnitude.</li>
     <li><b>Prior art already works.</b> FundiFix pools monthly mobile-money payments and fixes pumps within days. This adds a donor-visible fund that nobody holds.</li>
     <li><b>Not tested with any village.</b> It needs a field pilot.</li>
