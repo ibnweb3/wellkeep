@@ -13,7 +13,7 @@ const [cmd, arg, arg2] = process.argv.slice(2);
 const actions = {
   "add-mechanic": { AddMechanic: { account: arg } },
   "remove-mechanic": { RemoveMechanic: { account: arg } },
-  "add-pump": { AddPump: { name: arg, steward: arg2 } },
+  "add-pump": { AddPump: { name: arg, steward: arg2, deputies: [] } },
   "cancel-job": { CancelJob: { job: Number(arg) } },
   "reassign-owed": { ReassignOwed: { id: Number(arg), to: arg2 } },
 };

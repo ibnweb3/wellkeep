@@ -257,6 +257,8 @@ async function run(msgEl, label, fn) {
   } finally {
     busy = false;
     await refresh();
+    // The chain's views trail a new transaction by a few seconds, so look again until the page shows the next step.
+    for (const wait of [3000, 6000, 10000]) setTimeout(() => { if (!busy && !document.activeElement?.matches("select, input, textarea")) refresh(); }, wait);
   }
 }
 const relay = (method, args) => post("/api/relay", { method, args });
