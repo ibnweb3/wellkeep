@@ -10,7 +10,7 @@
 >
 > Ugbo is invented, and so are its people. The problem is not: about one handpump in four in sub-Saharan Africa is out of order at any time ([Foster and others, water point data](https://waterpointdata.org/wp-content/uploads/2020/11/Functionality-of-handpump-water-supplies.pdf)). The money that built them is not the money that keeps them running.
 
-**Demo video (2 minutes):** [docs/demo/wellkeep-demo.mp4](docs/demo/wellkeep-demo.mp4)
+**Demo video (2 min 49 s):** [docs/demo/wellkeep-demo.mp4](docs/demo/wellkeep-demo.mp4)
 
 ![The WellKeep overview page: "One broken pump shouldn't bring back a five-mile walk"](docs/screenshots/01-overview.png)
 
