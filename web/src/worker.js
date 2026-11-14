@@ -125,7 +125,7 @@ async function recycle(env) {
   if (!env.TOKEN_ID) return { skipped: "no token configured" };
   const near = client(env);
   const have = BigInt(await near.view(env.TOKEN_ID, "ft_balance_of", { account_id: env.RELAY_ID }));
-  if (have <= KEEP + 1_000_000n) return { skipped: "nothing worth returning", have: have.toString() };
+  if (have <= KEEP + 500_000n) return { skipped: "nothing worth returning", have: have.toString() };
   const amount = have - KEEP;
   const out = await near.call(env.TOKEN_ID, "ft_transfer_call", { receiver_id: env.POOL_ID, amount: amount.toString(), msg: "pool" }, { gas: GAS, attachedDeposit: "1 yocto" });
   return { returned: amount.toString(), hash: out?.transaction?.hash ?? null };
@@ -138,6 +138,10 @@ export default {
     return env.ASSETS.fetch(req);
   },
   async scheduled(_event, env, ctx) {
-    ctx.waitUntil(recycle(env).catch(() => {}));
+    ctx.waitUntil(
+      recycle(env)
+        .then((r) => console.log("recycle", JSON.stringify(r)))
+        .catch((e) => console.log("recycle failed:", String(e?.message || e).slice(0, 300))),
+    );
   },
 };
