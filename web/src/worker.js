@@ -1,7 +1,7 @@
 // Cloudflare Worker: serves the static site and runs one relayer endpoint.
 //
 // What this Worker is, honestly:
-//   - /api/relay  a relayer. It pays the gas for household calls (report, vote, redraw, release).
+//   - /api/relay  a relayer. It pays the gas for household calls (report, vote, redraw, release) and for retrying a refused payout.
 //                 It has no special rights on the contract: every call still needs a valid
 //                 one-time code or is open to anyone, checked on-chain.
 //   - /api/sandbox the judge sandbox: it lets a visitor play the MECHANIC and STEWARD roles without a wallet. The relayer
@@ -15,7 +15,7 @@
 import { Near } from "near-kit";
 import { DurableObject } from "cloudflare:workers";
 
-const RELAY_METHODS = new Set(["report_broken", "vote", "redraw_sample", "release_held"]);
+const RELAY_METHODS = new Set(["report_broken", "vote", "redraw_sample", "release_held", "retry_payment"]);
 const SANDBOX_METHODS = new Set(["accept_job", "post_fix", "steward_approve", "steward_reject"]);
 const SANDBOX_MAX_PRICE = 4000000n; // 4 USDC (6 decimals): keeps the test fund from being drained by one click
 const GAS = "150 Tgas";
@@ -115,10 +115,29 @@ async function handle(req, env) {
   }
 }
 
+/**
+ * The sandbox mechanic is the relayer account, so every sandbox repair pays test USDC to it. Left alone, the demo would
+ * drain. Every ten minutes this sends what the relayer holds above a small float back into the shared pool (a normal
+ * donation, signed by the relayer), so the sandbox keeps working for the next visitor. It moves nothing else.
+ */
+const KEEP = 2_000_000n; // the relayer keeps 2 USDC
+async function recycle(env) {
+  if (!env.TOKEN_ID) return { skipped: "no token configured" };
+  const near = client(env);
+  const have = BigInt(await near.view(env.TOKEN_ID, "ft_balance_of", { account_id: env.RELAY_ID }));
+  if (have <= KEEP + 1_000_000n) return { skipped: "nothing worth returning", have: have.toString() };
+  const amount = have - KEEP;
+  const out = await near.call(env.TOKEN_ID, "ft_transfer_call", { receiver_id: env.POOL_ID, amount: amount.toString(), msg: "pool" }, { gas: GAS, attachedDeposit: "1 yocto" });
+  return { returned: amount.toString(), hash: out?.transaction?.hash ?? null };
+}
+
 export default {
   async fetch(req, env) {
     const { pathname } = new URL(req.url);
     if (pathname.startsWith("/api/")) return handle(req, env);
     return env.ASSETS.fetch(req);
+  },
+  async scheduled(_event, env, ctx) {
+    ctx.waitUntil(recycle(env).catch(() => {}));
   },
 };

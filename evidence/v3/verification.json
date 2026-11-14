@@ -1,0 +1,55 @@
+{
+ "checkedAt": "2026-11-14T00:55:03.387Z",
+ "network": "testnet",
+ "poolId": "0se442fd5f33732a4fc919dbdc4b24589990ac9e5d",
+ "results": [
+  {
+   "id": "account",
+   "title": "The account exists on-chain",
+   "ok": true,
+   "detail": "0se442fd5f33732a4fc919dbdc4b24589990ac9e5d"
+  },
+  {
+   "id": "keys",
+   "title": "It has no access keys, so nobody can sign for it",
+   "ok": true,
+   "detail": "0 access keys"
+  },
+  {
+   "id": "byhash",
+   "title": "Its code is referenced by hash, so the publisher cannot change it",
+   "ok": true,
+   "detail": "global code hash AWgU7hAEP1bh3DwGcEf3cMaKrjMt3EDy439rgA9y6znF"
+  },
+  {
+   "id": "wasm",
+   "title": "The code at that hash is the wasm shipped in this repository",
+   "ok": true,
+   "detail": "repository wasm 298228 bytes, sha256 as base58: AWgU7hAEP1bh3DwGcEf3cMaKrjMt3EDy439rgA9y6znF"
+  },
+  {
+   "id": "chaincode",
+   "title": "The code the chain stores under that hash is byte-identical to the repository wasm",
+   "ok": true,
+   "detail": "298228 bytes read back from the chain"
+  },
+  {
+   "id": "address",
+   "title": "The address is derived from exactly this code and this starting state",
+   "ok": true,
+   "detail": "recomputed here: 0se442fd5f33732a4fc919dbdc4b24589990ac9e5d"
+  },
+  {
+   "id": "rules",
+   "title": "The signers, rules and household-code root reported today match the committed starting state",
+   "ok": true,
+   "detail": "signers bh-signer-a.testnet + bh-signer-b.testnet; 30 households; money is the NEP-141 token 3e2210e118...; code root dd5046f80436a1e8..."
+  },
+  {
+   "id": "vaults",
+   "title": "Every water point's own account has no keys and runs exactly the vault code shipped here",
+   "ok": true,
+   "detail": "6 pump account(s), 0 keys each, code hash 3Pcz3nieBrewZPiwqBuepTU6x2aHGvUc2WziCxGJZB2D (3938 bytes)"
+  }
+ ]
+}

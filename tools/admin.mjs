@@ -3,6 +3,7 @@
 //   node tools/admin.mjs remove-mechanic <account>
 //   node tools/admin.mjs add-pump "<name>" <steward-account>     (creates the pump's keyless account and mints its NFT to the steward)
 //   node tools/admin.mjs cancel-job <job-id>
+//   node tools/admin.mjs reassign-owed <owed-id> <new-payee-account>   (a refused payout, when the payee's account is gone)
 import { readFileSync } from "node:fs";
 import { nearFor } from "./lib.mjs";
 import { call } from "./pool.mjs";
@@ -14,10 +15,11 @@ const actions = {
   "remove-mechanic": { RemoveMechanic: { account: arg } },
   "add-pump": { AddPump: { name: arg, steward: arg2 } },
   "cancel-job": { CancelJob: { job: Number(arg) } },
+  "reassign-owed": { ReassignOwed: { id: Number(arg), to: arg2 } },
 };
 const action = actions[cmd];
-if (!action || !arg || (cmd === "add-pump" && !arg2)) {
-  console.error("usage: node tools/admin.mjs add-mechanic|remove-mechanic <account> | add-pump <name> <steward> | cancel-job <id>");
+if (!action || !arg || ((cmd === "add-pump" || cmd === "reassign-owed") && !arg2)) {
+  console.error("usage: node tools/admin.mjs add-mechanic|remove-mechanic <account> | add-pump <name> <steward> | cancel-job <id> | reassign-owed <id> <account>");
   process.exit(1);
 }
 for (const signer of ["bh-signer-a.testnet", "bh-signer-b.testnet"]) {

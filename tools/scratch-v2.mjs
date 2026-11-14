@@ -26,11 +26,12 @@ const dep = nearFor(deployer);
 const near = (id) => nearFor(id);
 const jobNow = async () => { await sleep(7000); return viewer().view(pool, "get_job", { id: 0 }); }; // views trail finalised state by a few seconds
 
+let mockNear = null;
 if (MOCK) {
   const mk = generateKey();
   writeFileSync(`.keys/${mockId}.json`, JSON.stringify({ accountId: mockId, privateKey: mk.secretKey }));
-  await nearFor(deployer).transaction(deployer).createAccount(mockId).transfer(mockId, "3 NEAR").addKey(mk.publicKey.toString(), { type: "fullAccess" }).deployContract(mockId, readFileSync(MOCK)).send();
-  const mockNear = new (await import("near-kit")).Near({ network: NETWORK, privateKey: mk.secretKey, defaultSignerId: mockId });
+  await nearFor(deployer).transaction(deployer).createAccount(mockId).transfer(mockId, "2.5 NEAR").addKey(mk.publicKey.toString(), { type: "fullAccess" }).deployContract(mockId, readFileSync(MOCK)).send();
+  mockNear = new (await import("near-kit")).Near({ network: NETWORK, privateKey: mk.secretKey, defaultSignerId: mockId });
   await call(mockNear, mockId, "new", {});
   for (const a of [D, M]) await call(mockNear, mockId, "mint", { account_id: a, amount: String(100e6) });
   console.log("mock token", mockId, "minted 100 to donor");
@@ -38,11 +39,11 @@ if (MOCK) {
 const key = generateKey();
 writeFileSync(`.keys/${pool}.json`, JSON.stringify({ accountId: pool, privateKey: key.secretKey }));
 console.log("create + deploy", pool);
-await dep.transaction(deployer).createAccount(pool).transfer(pool, "8 NEAR").addKey(key.publicKey.toString(), { type: "fullAccess" })
+await dep.transaction(deployer).createAccount(pool).transfer(pool, "6 NEAR").addKey(key.publicKey.toString(), { type: "fullAccess" })
   .deployContract(pool, readFileSync("evidence/wellkeep_pool.wasm")).send();
 const me = new (await import("near-kit")).Near({ network: NETWORK, privateKey: key.secretKey, defaultSignerId: pool });
 const params = { token: USDC, hold_ns: String(20e9), vote_window_ns: String(30e9), min_replies: 5, sample_size: 8, max_price: U(4), tier0_cap: U(1), tier1_cap: U(2), mid_cap: U(3), first_pct: 70, rebroken_needed: 2, max_attempts: 2 };
-await call(me, pool, "new", { signers: [A, B], params, root: Buffer.from(cards.root, "hex").toString("base64"), households: 30 });
+await call(me, pool, "new", { signers: [A, B], params, root: Buffer.from(cards.root, "hex").toString("base64"), households: cards.cards.length });
 await sleep(6000);
 console.log("init ok", JSON.stringify(await viewer().view(pool, "get_config", {})).slice(0, 160));
 
@@ -55,6 +56,7 @@ const both = async (action) => {
 };
 await both({ AddMechanic: { account: M } });
 await both({ AddPump: { name: "Scratch well", steward: STEWARD, deputies: ["bh-council-1.testnet"] } });
+await both({ AddPump: { name: "Scratch well 2", steward: STEWARD, deputies: [] } });
 await sleep(7000);
 const p0 = await viewer().view(pool, "get_pump", { id: 0 });
 console.log("pump 0", JSON.stringify(p0).slice(0, 300));
@@ -70,7 +72,8 @@ const have = await usdcOf(D);
 console.log("donor USDC", have);
 if (have < 6) { console.log("STOP: donor needs test USDC (faucet.circle.com). Cleaning up."); await me.transaction(pool).deleteAccount({ beneficiary: deployer }).send(); process.exit(0); }
 await call(near(D), USDC, "ft_transfer_call", { receiver_id: pool, amount: U(3), msg: "pool" }, "1 yocto");
-await call(near(D), USDC, "ft_transfer_call", { receiver_id: pool, amount: U(1), msg: "pump:0" }, "1 yocto");
+await call(near(D), USDC, "ft_transfer_call", { receiver_id: pool, amount: U(4), msg: "pump:0" }, "1 yocto");
+await call(near(D), USDC, "ft_transfer_call", { receiver_id: pool, amount: U(3), msg: "pump:1" }, "1 yocto");
 await sleep(7000);
 console.log("pool USDC", await usdcOf(pool), "vault USDC", await usdcOf(vault), "config.free", (await viewer().view(pool, "get_config", {})).free, "pump earmark", (await viewer().view(pool, "get_pump", { id: 0 })).earmark);
 
@@ -124,5 +127,40 @@ console.log("mid quote:", j1.status, "above_mid", j1.above_mid);
 await call(near("bh-council-1.testnet"), pool, "steward_approve", { job: 1 });
 await sleep(7000);
 console.log("after deputy approval:", (await viewer().view(pool, "get_job", { id: 1 })).status);
+// ---- a payout the token refuses: recorded as owed, then retried (needs the mock token, which can refuse on demand)
+if (MOCK) {
+  const credFor = async (hh, action) => {
+    for (let slot = 0; slot < cards.slots; slot++) {
+      if (await viewer().view(pool, "is_slot_used", { hh, slot })) continue;
+      return cred(cards, hh, slot, action);
+    }
+    throw new Error("no unused row");
+  };
+  await call(mockNear, USDC, "block", { account_id: M, on: true }); // the token now refuses transfers to the mechanic
+  await call(relay, pool, "report_broken", { pump: 1, cred: await credFor(2, ACTIONS.report) });
+  await sleep(7000);
+  const jid = Number((await viewer().view(pool, "get_pump", { id: 1 })).open_job);
+  await call(near(M), pool, "accept_job", { job: jid, price: U(1) });
+  await call(near(M), pool, "post_fix", { job: jid });
+  await sleep(7000);
+  const asked2 = (await viewer().view(pool, "get_job", { id: jid })).eligible;
+  let k = 0;
+  for (const hh of asked2) {
+    await call(relay, pool, "vote", { job: jid, works: true, cred: await credFor(hh, ACTIONS.yes) });
+    if (++k === 5) break;
+  }
+  await sleep(9000);
+  const owed = await viewer().view(pool, "list_owed", { from: 0, limit: 10 });
+  console.log("owed after the token refused:", JSON.stringify(owed.map((o) => ({ id: o.id, kind: o.kind, amount: o.amount, to: o.to, state: o.state }))));
+  console.log("pump 1 paid_total (should be 0):", (await viewer().view(pool, "get_pump", { id: 1 })).paid_total, "| vault still holds", await usdcOf((await viewer().view(pool, "get_pump", { id: 1 })).vault));
+  await call(mockNear, USDC, "block", { account_id: M, on: false });
+  const before = await usdcOf(M);
+  await call(relay, pool, "retry_payment", { id: 0 });
+  await sleep(9000);
+  const o2 = await viewer().view(pool, "get_owed", { id: 0 });
+  console.log("after the retry:", o2.state, "| mechanic USDC +", ((await usdcOf(M)) - before).toFixed(2), "(expected 0.70) | pump 1 paid_total", (await viewer().view(pool, "get_pump", { id: 1 })).paid_total);
+  const kinds = (await viewer().view(pool, "list_ledger", { from: 0, limit: 200 })).map((e) => e.kind).filter((x) => /^pay_(failed|retry|recovered|reassigned)/.test(x));
+  console.log("recovery ledger entries:", kinds.join(", "));
+}
 await me.transaction(pool).deleteAccount({ beneficiary: deployer }).send();
 console.log("scratch deleted; deployer", String(await viewer().getBalance(deployer)));

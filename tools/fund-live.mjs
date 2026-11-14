@@ -6,9 +6,9 @@ const pool = JSON.parse(readFileSync("evidence/publish.json", "utf8")).poolId;
 const T = "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af";
 const U = (n) => String(Math.round(n * 1e6));
 const plan = [
-  ["bh-donor.testnet", 20, "pool"], ["bh-deployer-1113.testnet", 20, "pool"],
-  ["bh-council-3.testnet", 6, "pump:0"], ["bh-council-3.testnet", 6, "pump:1"], ["bh-council-3.testnet", 6, "pump:2"],
-  ["bh-council-2.testnet", 6, "pump:3"], ["bh-council-2.testnet", 6, "pump:4"], ["bh-council-1.testnet", 6, "pump:5"],
+  ["bh-relay.testnet", 14, "pool"], ["bh-relay.testnet", 3, "pump:0"], ["bh-relay.testnet", 3, "pump:1"],
+  ["bh-mechanic.testnet", 3, "pump:2"], ["bh-mechanic.testnet", 3, "pump:3"], ["bh-mechanic.testnet", 3, "pump:4"],
+  ["bh-council-1.testnet", 2, "pump:5"], ["bh-council-2.testnet", 2, "pool"], ["bh-council-3.testnet", 2, "pool"],
 ];
 for (const [from, amt, msg] of plan) {
   const out = await call(nearFor(from), T, "ft_transfer_call", { receiver_id: pool, amount: U(amt), msg }, "1 yocto");

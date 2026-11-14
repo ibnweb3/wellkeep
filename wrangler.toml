@@ -17,7 +17,12 @@ class_name = "Limiter"
 tag = "v1"
 new_sqlite_classes = ["Limiter"]
 
+# Every ten minutes the relayer returns the test USDC the sandbox paid it back to the shared pool (see recycle in worker.js).
+[triggers]
+crons = ["*/10 * * * *"]
+
 [vars]
-POOL_ID = "0se442fd5f33732a4fc919dbdc4b24589990ac9e5d"
+POOL_ID = "0sce7733280262383cafd796e19b8ea0dc2bc2de56"
 RELAY_ID = "bh-relay.testnet"
+TOKEN_ID = "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af"
 RPC_URL = "https://test.rpc.fastnear.com"

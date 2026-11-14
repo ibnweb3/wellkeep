@@ -7,3 +7,4 @@ node_modules/
 .codex-pass.md
 photos-src/
 !evidence/v2/*.wasm
+!evidence/v3/*.wasm

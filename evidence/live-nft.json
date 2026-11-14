@@ -1,5 +1,5 @@
 {
- "pool": "0se442fd5f33732a4fc919dbdc4b24589990ac9e5d",
+ "pool": "0sce7733280262383cafd796e19b8ea0dc2bc2de56",
  "token": "pump-5",
  "ownerAfterFirstTransfer": "bh-signer-a.testnet",
  "oldHolderRefused": "Smart contract panicked: only this pump's steward can set its cap",
@@ -11,19 +11,19 @@
  "steps": [
   {
    "label": "bh-relay.testnet transfers NFT pump-5 to bh-signer-a.testnet",
-   "hash": "EpBKwTry7hLg84s4TcytiM6kEjdJTSpM6LRY7MwA2KCR"
+   "hash": "Dm8WuG6zGee6g2MdzYRkHGp4XJrGUFhE2xmopmNwLPR2"
   },
   {
    "label": "bh-signer-a.testnet (new steward) adds bh-council-1.testnet as a deputy of pump 5",
-   "hash": "Etu4XfVEj98iWo6JTeAL61Ua4ggtGKLXR5T92G5AbPzL"
+   "hash": "GVgNXJ8sMP1jxpZhwjjwre8Adz5bq6CPtueaa29gsUJ7"
   },
   {
    "label": "bh-signer-a.testnet removes the deputy again",
-   "hash": "4Xwdq2RCo1cFbd8ydg3Zx7ueJMB9M7SBbGPWnPuBiv4t"
+   "hash": "FNypiLuYF9LfVYhgGLVGN3uAQCJaowEvyYcB1dXCY9QX"
   },
   {
    "label": "bh-signer-a.testnet transfers NFT pump-5 back to bh-relay.testnet",
-   "hash": "AirGQYPUcdHksCXMVh9WiTDhiSG1KU1XJuUoCkyXfmvE"
+   "hash": "93WdyoDo9Smh5etZwRhJcibsbiLPCn4Sxvw1e9wcciP8"
   }
  ],
  "nep171Events": [
@@ -56,5 +56,5 @@
    ]
   }
  ],
- "at": "2026-11-14T01:18:41.172Z"
+ "at": "2026-11-14T01:52:05.749Z"
 }

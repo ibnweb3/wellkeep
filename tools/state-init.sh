@@ -8,5 +8,5 @@ root="$(node -e "console.log(JSON.parse(require('fs').readFileSync('$here/web/pu
 USDC=3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af
 cd "$here/contract"
 CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/bh-target-host}" cargo run --release --quiet --features state-tool --example state -- \
-  bh-signer-a.testnet bh-signer-b.testnet "$root" 30 3600 3600 5 8 4000000 1000000 2000000 3000000 70 2 2 "$USDC" > "$here/evidence/state-init.json"
+  bh-signer-a.testnet bh-signer-b.testnet "$root" 150 3600 3600 5 8 4000000 1000000 2000000 3000000 70 2 2 "$USDC" > "$here/evidence/state-init.json"
 cat "$here/evidence/state-init.json" | head -c 200; echo

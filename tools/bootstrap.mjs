@@ -18,7 +18,7 @@ const existing = await viewer().view(pool, "get_config", {}).catch(() => null);
 if (existing && existing.pump_count > 0) throw new Error(`pool already has ${existing.pump_count} pumps: refusing to bootstrap twice`);
 
 console.log("pool", pool);
-await nearFor(deployer).send(pool, "7 NEAR"); // gas reserve, the pumps' accounts and the mechanics' registrations
+await nearFor(deployer).send(pool, "6 NEAR"); // gas reserve, the pumps' accounts and the mechanics' registrations
 await call(nearFor(deployer), USDC, "storage_deposit", { account_id: pool, registration_only: true }, "0.00125 NEAR");
 const COUNCIL = ["bh-council-1.testnet", "bh-council-2.testnet", "bh-council-3.testnet"];
 const pumps = [

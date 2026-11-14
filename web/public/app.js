@@ -10,7 +10,7 @@ const U = 10n ** 6n; // USDC base units per USDC
 let CONFIG, LEVELS, SLOTS, W = null;
 let walletAcct = null;
 let isMech = false;
-let S = { cfg: null, pumps: [], mechs: [], jobs: [], ledger: [], balance: "0", poolUsdc: "0", dao: null, chainNow: 0n, fetchedAt: 0 };
+let S = { cfg: null, pumps: [], mechs: [], jobs: [], ledger: [], owed: [], balance: "0", poolUsdc: "0", dao: null, chainNow: 0n, fetchedAt: 0 };
 const usedCache = new Map();
 let busy = false;
 let lastRoute = null;
@@ -81,7 +81,8 @@ async function load() {
   // the newest entries, so the page stays current once the lists outgrow one read
   const jobsFrom = Math.max(0, Number(cfg.job_count) - 100);
   const ledgerFrom = Math.max(0, Number(cfg.ledger_count) - 400);
-  const [pumps, jobs, ledger, acct, block, mechs, poolUsdc, dao] = await Promise.all([
+  const owedFrom = Math.max(0, Number(cfg.owed_count) - 50);
+  const [pumps, jobs, ledger, acct, block, mechs, poolUsdc, dao, owed] = await Promise.all([
     view("list_pumps"),
     view("list_jobs", { from: jobsFrom, limit: 100 }),
     view("list_ledger", { from: ledgerFrom, limit: 400 }),
@@ -90,10 +91,11 @@ async function load() {
     view("list_mechanics"),
     usdcOf(CONFIG.poolId),
     loadDao(),
+    view("list_owed", { from: owedFrom, limit: 50 }),
   ]);
   const vaultBal = await Promise.all(pumps.map(([, p]) => usdcOf(p.vault)));
   const all = pumps.map(([id, p], i) => ({ id, ...p, vaultBal: vaultBal[i] }));
-  S = { cfg, allPumps: all, pumps: all.filter((p) => !(CONFIG.hiddenPumps || []).includes(p.id)), mechs, jobs, ledger, balance: acct.amount, poolUsdc, dao, chainNow: BigInt(block.header.timestamp), fetchedAt: Date.now() };
+  S = { cfg, allPumps: all, pumps: all.filter((p) => !(CONFIG.hiddenPumps || []).includes(p.id)), mechs, jobs, ledger, owed, balance: acct.amount, poolUsdc, dao, chainNow: BigInt(block.header.timestamp), fetchedAt: Date.now() };
   usedCache.clear();
 }
 const nowNs = () => S.chainNow + BigInt(Date.now() - S.fetchedAt) * 1_000_000n;
@@ -310,7 +312,7 @@ function render() {
     });
     setupReveal();
   }
-  for (const id of ["msg", "msg-fund", "msg-try", "msg-steward"]) {
+  for (const id of ["msg", "msg-fund", "msg-try", "msg-steward", "msg-owed"]) {
     const el = document.getElementById(id);
     if (el && lastMsg[id]) {
       el.className = `msg ${lastMsg[id].kind}`;
@@ -722,8 +724,12 @@ function ledgerPage() {
     vote: "Household voted",
     pay_first: "First share paid to mechanic",
     pay_held: "Held share paid to mechanic",
-    pay_failed_first: "First payment failed at the USDC contract",
-    pay_failed_held: "Held payment failed at the USDC contract",
+    pay_failed_first: "First payment refused by the USDC contract (owed)",
+    pay_failed_held: "Held payment refused by the USDC contract (owed)",
+    pay_retry: "Refused payment tried again",
+    pay_recovered: "Refused payment paid after all",
+    pay_retry_failed: "Retry refused again",
+    pay_reassigned: "Both signers pointed a refused payment at another account",
     forfeit: "Held share returned to the pump",
     rejected: "Village said not fixed",
     redraw: "More households asked",
@@ -733,6 +739,16 @@ function ledgerPage() {
   return `<h1>Public ledger</h1>
   <p class="lead">Every entry is stored by the contract, so anyone can read the same list straight from the chain. Votes show a household number and a time, never a name.</p>
   <div class="row" style="margin-bottom:14px"><button class="secondary" id="csv-jobs">Invoices as CSV (for a bookkeeper)</button><button class="secondary" id="csv-ledger">Ledger as CSV</button></div>
+  <h2>Failed payments</h2>
+  ${
+    S.owed.length
+      ? `<p class="muted">If the USDC contract ever refuses a payout, the money stays in the pump's own account and is listed here. Anyone can retry it; the pool registers the payee with the token first. If the payee's account is gone, both signers can point it at another account.</p>
+         <div class="card tablewrap"><table><thead><tr><th>#</th><th>Job</th><th>Payee</th><th>Amount (USDC)</th><th>State</th><th></th></tr></thead><tbody>${S.owed
+           .map((o) => `<tr><td class="num">${o.id}</td><td><a href="#/job/${o.job}">${invNo({ id: o.job })}</a></td><td class="mono">${esc(o.to)}</td><td class="num">${usd(o.amount)}</td><td>${esc({ Open: "waiting for a retry", Retrying: "retry in progress", Paid: "paid after a retry" }[o.state] ?? o.state)}</td><td>${o.state === "Open" ? `<button class="secondary" data-retry="${o.id}">Retry payment</button>` : ""}</td></tr>`)
+           .join("")}</tbody></table></div>
+         <div class="msg" id="msg-owed" role="status"></div>`
+      : `<p class="muted">No payment has been refused. If the USDC contract ever refuses a payout, the money stays in the pump's own account and is listed here, and anyone can retry it.</p>`
+  }
   <h2>Invoices</h2>
   <div class="card tablewrap"><table>
     <thead><tr><th>Invoice</th><th>Water point</th><th>Payee</th><th>Quote (USDC)</th><th>Paid (USDC)</th><th>Status</th></tr></thead>
@@ -951,6 +967,7 @@ function aboutPage() {
     <li><b>Phones.</b> The SMS path is described, not built. Where there is almost no phone coverage this does not work.</li>
     <li><b>The money is Circle's testnet USDC.</b> It has no value. Cash-out to mobile money for the mechanic and NEAR Intents top-ups from other chains are not built (Intents has no testnet). A real deployment needs a licensed off-ramp partner and local stablecoin rules checked.</li>
     <li><b>The stewards on this demo are test accounts.</b> The village committee is a real Sputnik DAO, but its three council accounts are ours. A real village would choose its own people.</li>
+    <li><b>Refused payouts are recoverable.</b> If the USDC contract refuses a payout, the amount is recorded as owed and stays in the pump's account until it is paid or pointed at another account by both signers. The records never count it as paid in the meantime.</li>
     <li><b>Direct gifts to a pump's account.</b> Send USDC with <span class="mono">ft_transfer_call</span> (the buttons do this) so the pool records it. A plain transfer to a pump's account is held safely but is not counted by the pool until it is credited.</li>
     <li><b>Gas.</b> Villagers and the sandbox are gasless through the relayer. Real mechanics and stewards sign with their own wallet and need a little testnet NEAR; a full meta-transaction relay for them is not built.</li>
     <li><b>"Five-mile walk" is an illustration, not a measurement.</b> The headline is rhetoric; I have no source for a typical distance, and the distance varies enormously between places.</li>
@@ -967,6 +984,9 @@ function wire(r) {
   if (r.name === "ledger") {
     document.getElementById("csv-jobs")?.addEventListener("click", () => download("wellkeep-invoices.csv", invoiceRows()));
     document.getElementById("csv-ledger")?.addEventListener("click", () => download("wellkeep-ledger.csv", ledgerRows()));
+    $main.querySelectorAll("[data-retry]").forEach((b) =>
+      b.addEventListener("click", () => run(document.getElementById("msg-owed"), "Retrying the payment", () => relay("retry_payment", { id: Number(b.dataset.retry) }))),
+    );
     return;
   }
   if (r.name === "job") {

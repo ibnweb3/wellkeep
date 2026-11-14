@@ -21,7 +21,7 @@ Each claim below names what is built and where to see it. What is not built is l
 
 **Real-World Money: a repair is a paid job with an invoice, in a stablecoin.**
 - The money is Circle's testnet USDC (`3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af`, NEP-141). Donors send it with `ft_transfer_call` (`pump:N` or `pool`); mechanics are paid in USDC straight from the pump's account.
-- Each job has an invoice page (payer account, payee, quote, the 70% and 30% lines with status, time and a link to the payment's transaction) and a CSV export for a bookkeeper, per job and for the whole ledger (page **Ledger and invoices**). The transaction links come from the NEAR explorer's token-transfer index; if it is unreachable the cell links to the pump account's transfers instead.
+- If the USDC contract ever refuses a payout, it is recorded as owed and anyone can retry it (see Honest limits and Evidence). Each job has an invoice page (payer account, payee, quote, the 70% and 30% lines with status, time and a link to the payment's transaction) and a CSV export for a bookkeeper, per job and for the whole ledger (page **Ledger and invoices**). The transaction links come from the NEAR explorer's token-transfer index; if it is unreachable the cell links to the pump account's transfers instead.
 - Gasless for villagers and for the sandbox: a relayer pays the fee. Real mechanics and stewards sign with their own wallet and need a little testnet NEAR (a full meta-transaction relay for them is not built).
 
 **Social Money: a shared budget, a committee, and reputation tied to finished work.**
@@ -53,7 +53,7 @@ Real roles with real wallets (not needed for judging): connect a NEAR testnet wa
 
 On NEAR testnet, real:
 
-- A **keyless pool account**: `0se442fd5f33732a4fc919dbdc4b24589990ac9e5d`, no access keys. Its code is a global contract referenced **by hash** (`AWgU7hAEP1bh3DwGcEf3cMaKrjMt3EDy439rgA9y6znF`, 298,228 bytes), so nobody can swap it. (An earlier pool from this same hackathon build, without the deputy tier, is superseded; its files are in `evidence/v2/`.)
+- A **keyless pool account**: `0sce7733280262383cafd796e19b8ea0dc2bc2de56`, no access keys. Its code is a global contract referenced **by hash** (`3sVsHpgWmqXqLG2ZVbW5QprnBbRCHuqMiP9kkpg3TajV`, 313,420 bytes), so nobody can swap it. (Two earlier pools from this same hackathon build are superseded, one without the deputy tier and one without payout recovery; their files are in `evidence/v2/` and `evidence/v3/`.)
 - **Six keyless pump accounts** `pump-0` to `pump-5` under the pool, each running the same 3,938-byte vault (`3Pcz3nieBrewZPiwqBuepTU6x2aHGvUc2WziCxGJZB2D`), each with 0 access keys.
 - The repair rule: reports, quotes, three approval tiers, one-time-code voting, the random sample, the 70/30 payment and the forfeit rule (`contract/src/lib.rs`).
 - The USDC held by each pump is in that pump's own account on the USDC contract, not a number inside the pool.
@@ -97,14 +97,14 @@ hold ends, no forfeit ─▶ release_held (anyone) ─▶ pump-N pays the 30%
 | NEAR feature | What it does here | Where |
 | --- | --- | --- |
 | NEAR testnet | Holds the fund, jobs, votes and the public ledger | `wrangler.toml` (`POOL_ID`), `evidence/publish.json` |
-| Global contract, referenced by hash | The pool's code lives once on-chain under hash `AWgU7hAEP1bh3DwGcEf3cMaKrjMt3EDy439rgA9y6znF`; the pool points at the hash, so nobody can swap it | `tools/publish.mjs`, `web/src/verify-core.js` (checks 3 to 5) |
+| Global contract, referenced by hash | The pool's code lives once on-chain under hash `3sVsHpgWmqXqLG2ZVbW5QprnBbRCHuqMiP9kkpg3TajV`; the pool points at the hash, so nobody can swap it | `tools/publish.mjs`, `web/src/verify-core.js` (checks 3 to 5) |
 | Deterministic `0s` account | The pool address is derived from its code and starting state and has no access keys | `tools/publish.mjs create`, `evidence/state-init.json`, `web/src/verify-core.js` |
 | Sub-accounts | Each water point gets a keyless account `pump-N.<pool>` created by the pool, running embedded vault code | `contract/src/lib.rs` (`Action::AddPump`), `vault/src/lib.rs` |
 | NEP-171 NFTs | `pump-N` transfers and carries stewardship; `hh-N` are non-transferable credentials. `nft_token`, `nft_tokens_for_owner`, `nft_supply_for_owner`, `nft_transfer`, mint and transfer events | `contract/src/lib.rs` (NFT section) |
 | NEP-141 (Circle testnet USDC) | The money: `ft_transfer_call` in, `ft_transfer` out of each vault, registration with `storage_deposit` | `contract/src/lib.rs` (`ft_on_transfer`, `pay_out`), `vault/src/lib.rs` |
 | Sputnik DAO | The village committee; holds the Village A pump NFTs and votes on big quotes | `tools/dao.mjs`, `web/public/app.js` (Community page) |
 | NEAR on-chain random seed | `env::random_seed()` draws the households asked to vote | `contract/src/lib.rs` (`draw_sample`) |
-| near-sdk (Rust) | The pool contract (47 unit tests in `contract/src/tests.rs`) | `contract/` |
+| near-sdk (Rust) | The pool contract (55 unit tests in `contract/src/tests.rs`) | `contract/` |
 | near-sys (no SDK) | The 3.9 KB vault written against the host functions directly | `vault/` |
 | near-kit | The Worker's relayer pays gas and signs calls; the tools sign testnet calls | `web/src/worker.js`, `tools/` |
 | NEAR wallet (`@hot-labs/near-connect`) | Donors, mechanics and stewards sign with their own accounts | `web/src/wallet.js` |
@@ -116,7 +116,7 @@ hold ends, no forfeit ─▶ release_held (anyone) ─▶ pump-N pays the 30%
 - **The address proves the rules.** A NEAR deterministic account's address is derived from its code and starting state, and it has no keys. The page recomputes that address in the browser and checks over RPC that there are no access keys, that the code is referenced by hash, that the stored code is byte-identical to `evidence/wellkeep_pool.wasm`, and that every pump account has no keys and runs the exact vault code.
 - **The token is the account.** A water point's NFT and the account that holds its money are the same thing on NEAR: a sub-account that the contract creates with no key. Ownership of the NFT is control of the pump; the money does not move on transfer.
 - **A committee that is an ordinary DAO.** The pump NFT can be held by a Sputnik DAO, so approvals are DAO proposals with no new multisig code.
-- **Measured costs on testnet.** Publishing the 298,228-byte pool code by hash burned 29.84 NEAR once; creating the keyless pool from it cost about 0.01 NEAR; each pump account needs about 0.1 NEAR for its storage.
+- **Measured costs on testnet.** Publishing the 313,420-byte pool code by hash burned 31.37 NEAR once; creating the keyless pool from it cost about 0.01 NEAR; each pump account needs about 0.1 NEAR for its storage.
 - **What would work on any chain:** the repair rule itself (reports, quotes, sample vote, two-stage payment). An EVM version with a factory, per-pump contracts and a paymaster could do much of it. We do not claim only NEAR can do this. What NEAR adds is narrower: addresses that prove their own code, tokens that are the accounts holding the money, and a committee that is an off-the-shelf DAO.
 
 ## Prior art, and what is different
@@ -133,8 +133,8 @@ What is different: the fund is public and keyless, so a donor can see and check 
 - **Votes are linkable to a card.** Anyone who knows which card is whose can see how it voted.
 - **A held share can be denied by two dishonest households.** Two reports forfeit it. The mechanic has no appeal in this version.
 - **No phone coverage means no votes.** The design leans on SMS and printed cards; this is untested.
-- **A failed payout has no recovery path.** If the USDC contract refuses a transfer out of a pump's account (for example the mechanic's account was deleted), the pool's callback records a `pay_failed` ledger entry, but the money stays in the vault and the job still reads as paid. The contract is immutable, so this cannot be added to this pool. Mechanics are registered with the USDC contract when they are added, which makes it unlikely.
-- **The sandbox has finite capacity.** It spends one-time card rows (180 in total, 6 per full repair, so about 28 full repairs remain on this pool) and test USDC, and it runs on a relayer account with a small NEAR balance. `/api/*` is rate limited by an exact Durable Object counter (30 requests a minute per caller, 120 for everyone) so one caller cannot burn it, but many callers together still could. Real use needs more card batches (the contract supports adding them; the demo page uses one).
+- **Refused payouts are recoverable, with limits.** If the USDC contract refuses a payout, the pool's callback records it as *owed*: the money stays in the pump's account, the ledger says so, and the paid totals no longer count it. Anyone can press **Retry payment** on the ledger page; the pool first registers the payee with the token, then the pump's vault pays again. If the payee's account is gone, both signers can point the payment at another account (`node tools/admin.mjs reassign-owed`). This was proven on testnet with a token that can be told to refuse (`evidence/scratch-recovery.md`), not with Circle's USDC, which cannot be made to refuse a registered account on demand.
+- **The sandbox is finite.** The household roll has 150 households with 6 one-time card rows each (900 rows; a full repair uses 6), so about 150 full repairs fit on this pool, and it spends test USDC. Every ten minutes the relayer (the sandbox mechanic) returns the USDC it was paid above a small float to the shared pool, so the demo refills itself; `/api/*` is rate limited by an exact Durable Object counter (30 requests a minute per caller, 120 for everyone). Many callers together could still exhaust the card rows or the relayer's NEAR for gas. Real use needs more card batches (the contract supports adding them; the demo page uses one).
 - **A committee can be captured.** The DAO is as honest as its council, and one deputy can approve a mid-size quote alone. Quotes within a trusted mechanic's limit need no approval at all.
 - **Real money.** Nigeria and Kenya tightened stablecoin rules in November 2026, and I found no evidence of rural mechanics using stablecoins. A real deployment needs a licensed off-ramp partner.
 - **Donor demand is unproven.** I found no evidence that small donors would fund maintenance over new wells.
@@ -148,8 +148,9 @@ What is different: the fund is public and keyless, so a donor can see and check 
 - `evidence/live-run-v3.json` - two live repairs on the real pool with real Circle USDC: a 2.5 USDC quote approved by one council member alone, and a 4 USDC quote where the council member was refused and DAO proposal 1 (2 of 3 votes) approved it; five household votes each; 1.75 and 2.80 USDC paid from the pumps' own accounts, with the transaction hashes of the report, quote, approval, fix and votes.
 - `evidence/publish.json` - code hash, publisher, pool address. `evidence/wellkeep_pool.wasm`, `evidence/wellkeep_vault.wasm` and `evidence/state-init.json` - the exact code and starting state the addresses commit to.
 - `tools/scratch-v2.mjs` - the same flow on a throwaway pool, run with a mock NEP-141 token before publishing: donation routing, the big-quote gate, an NFT transfer in the middle of a job (the old holder is refused), the 70/30 payout from the vault, the reputation update, and a deputy refused on a quote above the council-member limit.
-- `contract/` - 47 unit tests (`cargo test`); `tests/` - JS tests for the card codes and the verifier, including a negative control (the same code deployed the ordinary way, with a key and no hash reference, fails the checks).
-- `evidence/v2/` - the previous pool of this build (no deputy tier) with its live run, kept as history. `evidence/borehole_pool.wasm`, `evidence/live-run.json` - the first version (non-transferable records, NEAR instead of USDC).
+- `contract/` - 55 unit tests (`cargo test`); `tests/` - JS tests for the card codes and the verifier, including a negative control (the same code deployed the ordinary way, with a key and no hash reference, fails the checks).
+- `evidence/scratch-recovery.md` - the failed-payout recovery run on testnet (a mock token that can refuse), with the output.
+- `evidence/v2/`, `evidence/v3/` - the two previous pools of this build (no deputy tier; no payout recovery) with their live runs, kept as history. `evidence/borehole_pool.wasm`, `evidence/live-run.json` - the first version (non-transferable records, NEAR instead of USDC).
 
 ## Run it yourself
 
@@ -164,7 +165,7 @@ bash tools/build.sh
 bash tools/state-init.sh                  # the pool's exact starting state
 
 # publish and create (testnet; accounts/keys in .keys/, gitignored)
-node tools/cards.mjs 30 6
+node tools/cards.mjs 150 6
 node tools/publish.mjs publish            # burns ~29 testnet NEAR once per code version
 node tools/publish.mjs create
 node tools/bootstrap.mjs                  # mechanics and six pumps (each creates its keyless account)

@@ -1,76 +1,76 @@
 {
- "pool": "0se442fd5f33732a4fc919dbdc4b24589990ac9e5d",
+ "pool": "0sce7733280262383cafd796e19b8ea0dc2bc2de56",
  "midJob": 0,
  "largeJob": 1,
- "daoProposal": 1,
+ "daoProposal": 2,
  "steps": [
   {
    "label": "hh-0 reports pump 1 broken",
-   "hash": "8yiUQtdJ29BK8crQqUmuE9yU4VoooWf2cMNrdWnDkoLv"
+   "hash": "H62bYwNSUSx4La6SATeyU4cLKNALaY13woWitk6N7pyE"
   },
   {
    "label": "mechanic quotes 2.5 USDC on job 0 (above the 1 USDC limit, within the 3 USDC council-member limit)",
-   "hash": "8jGB9RdfwVpG8XiQNzQVU2Dh4uQmgLjdyUDkf1vqVnuR"
+   "hash": "FBtzwxGtJAaS29oGppFzznTPLmBmNgbDvZVaaHyph6GS"
   },
   {
    "label": "council member bh-council-1.testnet approves job 0 alone",
-   "hash": "EWPD35J6QXRrLizXfatA8RKfGsrxrGm6MhaXP6AF7VwD"
+   "hash": "7cbB1bCoXeyZrwWcoB2QpkAytKiFhVnQo49xHnZkcC5F"
   },
   {
    "label": "mechanic posts the fix on job 0",
-   "hash": "91S281HGYFN3qBJexZvDL8M8TNbrnuJd8zd4DjuVZzQz"
+   "hash": "3hBgFfYfvmuzKXhyac5wWEGa5ymK3vU7tS5thJZGtoBk"
   },
   {
    "label": "hh-0 says it works (job 0)",
-   "hash": "7pqctG8YVHnRaXRRzYZfzJfBjKgyzV2nccQ9ceLeGKnp"
+   "hash": "2rEnGRSqPPoxxNukDgPURLVbpU1AR4QWpMswM1ZHv8ra"
   },
   {
-   "label": "hh-7 says it works (job 0)",
-   "hash": "fjeLFsj5UD7EmkuVDJv4qpqmTMonanv7FtNA8Q6sMve"
-  },
-  {
-   "label": "hh-16 says it works (job 0)",
-   "hash": "6fwTpyJetzAfRJixzM3JHqsLQ4KDLynzq6zRvUD378M8"
+   "label": "hh-70 says it works (job 0)",
+   "hash": "463KVBZJ7JqxFvw9TL5PCh7osjEiTfssicizc7uLEfry"
   },
   {
    "label": "hh-12 says it works (job 0)",
-   "hash": "BwzsiBjVhN4hZaGCaWSiW9SEHAKEUabmDydCPDEjrDhF"
+   "hash": "GFX4ZcL9EgMHeTPUMtE9eX3E9A9LkpK6WFRfvqSc3n8w"
   },
   {
-   "label": "hh-29 says it works (job 0)",
-   "hash": "5xkzmmsxzEkc3xT3TyGZMnReHSTMhxi9KvsLvGviX1gh"
+   "label": "hh-77 says it works (job 0)",
+   "hash": "D3FXsy9HjqxHwQ3ZsrLmcPFEtmj3DU4SQ2Q1t3kHv98v"
+  },
+  {
+   "label": "hh-11 says it works (job 0)",
+   "hash": "FreKbovxW2exvsZMDQJkEnSakgqsGPxqGf4aYokdnJ5d"
   },
   {
    "label": "hh-1 reports pump 0 broken",
-   "hash": "44gu5Vcf9AK36SjeF9uQfskZKqrajMTszmfJ72nW2HZU"
+   "hash": "29uzmxjVxfzH4vcbHzaBHE55t9SXHyUafw2ixQsYoGwE"
   },
   {
    "label": "mechanic quotes 4 USDC on job 1 (above the council-member limit)",
-   "hash": "7M7oMBRYBQs1ujqny1uW3RNp3rcGKYzRLzUowFi4amDL"
+   "hash": "CERCqMSgSNiahCJhw2Lqo2XTZnCYS73H28zQ1zDFVfPs"
   },
   {
    "label": "mechanic posts the fix on job 1",
-   "hash": "GR8BPVMwrfvEbsHVCKUxderqM7ShtqL8qfnuTkJGqJt1"
+   "hash": "GkZdfdoyHyfztnsCJGCZJ87dpj2ZXE9eHZDMavaoVnFw"
   },
   {
    "label": "hh-1 says it works (job 1)",
-   "hash": "1wtFCimbP6EXQFaiwJdwjnczw38FVLgis91iz7zAEGM"
+   "hash": "GNcTNXNgFcpSMyGEnAnLcv8duo433TVMu49H8NUKnUkd"
   },
   {
-   "label": "hh-17 says it works (job 1)",
-   "hash": "8htyNugEkQTh7QwSd6Ks8fUzZdC8nNLEUEw6nAP71ir1"
+   "label": "hh-57 says it works (job 1)",
+   "hash": "BqBbJxPz5nyPXVbnTVX9ZoNsTR4JXnaivByfi2MDbZBj"
   },
   {
-   "label": "hh-13 says it works (job 1)",
-   "hash": "9bC8VVRJddRDjzzXEJek7sbTnzQCsXBwbi6f6XtV1vW9"
+   "label": "hh-128 says it works (job 1)",
+   "hash": "7vLsA5r7ym1WsR5cU13ja6u3fD6qidkomK4gPyHReh4L"
   },
   {
-   "label": "hh-11 says it works (job 1)",
-   "hash": "Ddiu3FtG3gzYgYqw76LQ7j7jxHYr3dzLLJqQC5VxGJPU"
+   "label": "hh-100 says it works (job 1)",
+   "hash": "BoRoZMbtwzUThfJtktJ8pXbLH7MnqySVFq3mR6dQgDSo"
   },
   {
-   "label": "hh-7 says it works (job 1)",
-   "hash": "8rUkdn2cwFanbNMJ83aHS7oQh6UFAsohsEJoUMmKqsk3"
+   "label": "hh-16 says it works (job 1)",
+   "hash": "7Uoh9d7Td3zfzZHaizDV7kBHh58vyAMs7Afj53ZoWtNd"
   }
  ],
  "midResult": {
@@ -83,5 +83,5 @@
   "paid": "2800000",
   "held": "1200000"
  },
- "at": "2026-11-14T00:53:27.437Z"
+ "at": "2026-11-14T01:51:17.012Z"
 }

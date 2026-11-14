@@ -43,7 +43,8 @@ Source: the research report the owner commissioned (not independently re-checked
 7. **"Check before you give" verifier.** Recomputes the pool's address from its code and starting state, and checks by RPC: zero keys, code by hash, code identical to the repository wasm, rules match, and every pump account has zero keys and runs the exact vault code.
 8. **Gasless villagers.** A relayer pays the gas for reports and votes; the one-time code is the credential, checked on-chain.
 9. **Web app (Cloudflare Worker static assets).** Water points, pump pages with steward desk, invoices and CSV, public ledger, community (mechanic records and DAO proposals), a sandbox to play every role, the verifier.
-10. **Tests, README, evidence.** 47 contract tests, JS tests, a live run of the three tiers on real USDC, a scratch run with a mock token. Invoice payment lines link to their transactions through the explorer's token-transfer index.
+10. **Failed-payout recovery.** A payout the USDC contract refuses is recorded as owed (the money stays in the pump's account); anyone can retry it, and both signers can point it at another account. Proven on testnet with a token that can refuse.
+11. **Tests, README, evidence.** 55 contract tests, JS tests, a live run of the three tiers on real USDC, a scratch run with a mock token. Invoice payment lines link to their transactions through the explorer's token-transfer index.
 
 ## OUT (not built, and said so)
 
@@ -51,8 +52,7 @@ Source: the research report the owner commissioned (not independently re-checked
 - The SMS gateway. The SMS path is described, not wired.
 - NEAR Intents top-ups. Intents has no testnet.
 - A meta-transaction relay for mechanics and stewards (they sign with their own wallet).
-- A recovery path for a payout that fails at the USDC contract (it is logged as `pay_failed`; the contract is immutable).
-- Enough card batches for heavy use: the demo has one batch (about 28 full repairs), and `/api/*` is rate limited so one caller cannot exhaust it.
+- More than one batch of household cards: the demo has one batch of 150 households (about 150 full repairs), the relayer returns the sandbox's USDC to the shared pool every ten minutes, and `/api/*` is rate limited.
 - Crediting a plain USDC transfer sent straight to a pump's account (it is held safely but uncounted until `ft_transfer_call`).
 - Sensors, biometrics, photo or GPS proof, mainnet deployment, real stablecoins, any real personal data.
 - A real wallet-signed donation, quote, steward or deputy action, or NFT transfer was not completed in my own test session. The relayer, sandbox, DAO and command-line paths were, including a pump NFT transfer and deputy changes on the real pool (`evidence/live-nft.json`).
@@ -83,7 +83,7 @@ What would work on any chain: the repair rule itself (reports, quotes, sample vo
 - Pumps were records inside one pool (a ledger line), not accounts; the NFTs were read-only and non-transferable. Now each pump is a real keyless account and its NFT transfers.
 - The money was testnet NEAR; now it is USDC, with invoices and a CSV.
 - Mechanics were an allow-list; now they have a public record and a trust-based quote limit, and larger quotes need the steward or a DAO vote.
-- The first version's pool (`0s4123b90f113c99ea1492d8ef8e658f0890153193`) and wasm (`evidence/borehole_pool.wasm`) are kept as history only. A second pool without the deputy tier (`0sedce5ef2a8c3f587df86bd10a8a631fb9f7eaa19`) is superseded; its files are in `evidence/v2/`.
+- The first version's pool (`0s4123b90f113c99ea1492d8ef8e658f0890153193`) and wasm (`evidence/borehole_pool.wasm`) are kept as history only. Two later pools are also superseded: one without the deputy tier (`0sedce5ef2a8c3f587df86bd10a8a631fb9f7eaa19`, files in `evidence/v2/`) and one without payout recovery (`0se442fd5f33732a4fc919dbdc4b24589990ac9e5d`, files in `evidence/v3/`).
 
 ## Owner actions (not done by me)
 

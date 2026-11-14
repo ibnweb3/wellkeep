@@ -13,6 +13,8 @@
 //! Households authenticate with one-time codes from a printed card, checked against a Merkle root fixed
 //! at enrolment. A relayer submits the calls, so households hold no NEAR.
 //! Admin actions (add mechanic, add pump, ...) need BOTH signer accounts to approve the same action.
+//! If the stablecoin ever refuses a payout, the amount is recorded as OWED (it stays in the pump's account); anyone
+//! may retry it, and both signers may reassign it to another account if the payee's account is gone.
 
 use near_sdk::json_types::{Base64VecU8, U128, U64};
 use near_sdk::serde_json::{self, json};
@@ -161,6 +163,34 @@ pub struct Entry {
 }
 
 #[near(serializers=[borsh, json])]
+#[derive(Clone, PartialEq, Debug)]
+pub enum OwedState {
+    /// The transfer was refused; a retry may be made.
+    Open,
+    /// A retry is in flight.
+    Retrying,
+    /// Paid after all.
+    Paid,
+}
+
+/// A payout the stablecoin refused. The money stays in the pump's account until it is paid or reassigned.
+#[near(serializers=[borsh, json])]
+#[derive(Clone)]
+pub struct Owed {
+    pub id: u64,
+    pub job: u64,
+    pub pump: u32,
+    /// "first" or "held".
+    pub kind: String,
+    /// The mechanic who earned it (their record is credited only while it is actually paid).
+    pub mechanic: AccountId,
+    /// Where a retry sends it. Starts as the mechanic; both signers can change it.
+    pub to: AccountId,
+    pub amount: U128,
+    pub state: OwedState,
+}
+
+#[near(serializers=[borsh, json])]
 #[derive(Clone)]
 pub struct Credential {
     pub batch: u32,
@@ -179,6 +209,8 @@ pub enum Action {
     DeactivateHousehold { hh: u32 },
     AddBatch { root: Base64VecU8, count: u32 },
     CancelJob { job: u64 },
+    /// Point a refused payout at another account (for example when the payee's account no longer exists).
+    ReassignOwed { id: u64, to: AccountId },
 }
 
 #[near(contract_state)]
@@ -201,6 +233,8 @@ pub struct Contract {
     used: LookupSet<u64>,
     inactive: LookupSet<u32>,
     pending: LookupMap<[u8; 32], u8>,
+    owed: LookupMap<u64, Owed>,
+    owed_count: u64,
 }
 
 impl Contract {
@@ -240,6 +274,8 @@ impl Contract {
             used: LookupSet::new(b"u".to_vec()),
             inactive: LookupSet::new(b"i".to_vec()),
             pending: LookupMap::new(b"a".to_vec()),
+            owed: LookupMap::new(b"o".to_vec()),
+            owed_count: 0,
         }
     }
 
@@ -320,6 +356,18 @@ impl Contract {
             Gas::from_tgas(10),
         );
         pay.then(after).detach();
+    }
+
+    /// Moves a payout out of (or back into) the "paid" totals while it is owed, so the records never claim money
+    /// that did not move.
+    fn shift_paid(&mut self, pump: u32, mech: &AccountId, amount: u128, add: bool) {
+        let mut p = self.pump_get(pump);
+        p.paid_total = U128(if add { p.paid_total.0 + amount } else { p.paid_total.0.saturating_sub(amount) });
+        self.pumps.insert(pump, p);
+        if let Some(mut r) = self.rep_get(mech) {
+            r.earned = U128(if add { r.earned.0 + amount } else { r.earned.0.saturating_sub(amount) });
+            self.mechanics.insert(mech.clone(), r);
+        }
     }
 
     fn event(event: &str, data: serde_json::Value) {
@@ -576,6 +624,14 @@ impl Contract {
                 self.batches.push(Batch { root, start: self.total_households, count });
                 self.total_households += count;
             }
+            Action::ReassignOwed { id, to } => {
+                let mut o = self.owed.get(&id).cloned().unwrap_or_else(|| env::panic_str("no such failed payment"));
+                require!(o.state == OwedState::Open, "this payment is not waiting for a retry");
+                o.to = to.clone();
+                let (job, pump, amount) = (o.job, o.pump, o.amount.0);
+                self.owed.insert(id, o);
+                self.log("pay_reassigned", Some(job), Some(pump), amount, to.as_str());
+            }
             Action::CancelJob { job } => {
                 let mut j = self.job_get(job);
                 require!(
@@ -641,11 +697,68 @@ impl Contract {
         PromiseOrValue::Value(U128(0))
     }
 
-    /// Callback after a vault tried to pay: if the stablecoin refused, the ledger says so.
+    /// Callback after a vault tried to pay. If the stablecoin refused, the amount is recorded as owed: it stays in the
+    /// pump's account, the ledger says so, and the paid totals no longer count it until it is really paid.
     #[private]
     pub fn on_paid(&mut self, job: u64, pump: u32, amount: U128, to: AccountId, kind: String) {
         if env::promise_result_checked(0, 1024).is_err() {
+            let id = self.owed_count;
+            self.owed_count += 1;
+            self.owed.insert(
+                id,
+                Owed { id, job, pump, kind: kind.clone(), mechanic: to.clone(), to: to.clone(), amount, state: OwedState::Open },
+            );
+            self.shift_paid(pump, &to, amount.0, false);
             self.log(&format!("pay_failed_{kind}"), Some(job), Some(pump), amount.0, to.as_str());
+        }
+    }
+
+    /// Anyone may retry a refused payout. The pool first registers the payee with the stablecoin (the usual reason a
+    /// transfer is refused), then the pump's vault pays again. While a retry is in flight no second one can start.
+    pub fn retry_payment(&mut self, id: u64) {
+        let mut o = self.owed.get(&id).cloned().unwrap_or_else(|| env::panic_str("no such failed payment"));
+        require!(o.state == OwedState::Open, "this payment is not waiting for a retry");
+        o.state = OwedState::Retrying;
+        let vault = self.pump_get(o.pump).vault;
+        let register = self.token_call(
+            "storage_deposit",
+            json!({ "account_id": o.to, "registration_only": true }),
+            TOKEN_STORAGE,
+            10,
+        );
+        let pay = Promise::new(vault).function_call(
+            "pay".to_string(),
+            json!({ "to": o.to, "amount": o.amount.0.to_string() }).to_string().into_bytes(),
+            NearToken::from_yoctonear(0),
+            Gas::from_tgas(40),
+        );
+        let after = Promise::new(env::current_account_id()).function_call(
+            "on_retried".to_string(),
+            json!({ "id": id }).to_string().into_bytes(),
+            NearToken::from_yoctonear(0),
+            Gas::from_tgas(10),
+        );
+        register.then(pay).then(after).detach();
+        let (job, pump, amount, to) = (o.job, o.pump, o.amount.0, o.to.clone());
+        self.owed.insert(id, o);
+        self.log("pay_retry", Some(job), Some(pump), amount, to.as_str());
+    }
+
+    /// Callback after a retry: paid, or open again for another try.
+    #[private]
+    pub fn on_retried(&mut self, id: u64) {
+        let Some(mut o) = self.owed.get(&id).cloned() else { return };
+        if env::promise_result_checked(0, 1024).is_ok() {
+            o.state = OwedState::Paid;
+            let (job, pump, amount, mech, to) = (o.job, o.pump, o.amount.0, o.mechanic.clone(), o.to.clone());
+            self.owed.insert(id, o);
+            self.shift_paid(pump, &mech, amount, true);
+            self.log("pay_recovered", Some(job), Some(pump), amount, to.as_str());
+        } else {
+            o.state = OwedState::Open;
+            let (job, pump, amount, to) = (o.job, o.pump, o.amount.0, o.to.clone());
+            self.owed.insert(id, o);
+            self.log("pay_retry_failed", Some(job), Some(pump), amount, to.as_str());
         }
     }
 
@@ -934,6 +1047,7 @@ impl Contract {
             pump_count: self.pump_count,
             job_count: U64(self.job_count),
             ledger_count: U64(self.ledger_count),
+            owed_count: U64(self.owed_count),
             free: self.free,
             vault_code_hash: hex(&env::sha256_array(VAULT_WASM)),
             vault_code_bytes: VAULT_WASM.len() as u32,
@@ -954,6 +1068,14 @@ impl Contract {
 
     pub fn list_jobs(&self, from: u64, limit: u64) -> Vec<Job> {
         (from..self.job_count.min(from + limit)).filter_map(|i| self.jobs.get(&i).cloned()).collect()
+    }
+
+    pub fn get_owed(&self, id: u64) -> Option<Owed> {
+        self.owed.get(&id).cloned()
+    }
+
+    pub fn list_owed(&self, from: u64, limit: u64) -> Vec<Owed> {
+        (from..self.owed_count.min(from + limit)).filter_map(|i| self.owed.get(&i).cloned()).collect()
     }
 
     pub fn list_ledger(&self, from: u64, limit: u64) -> Vec<Entry> {
@@ -1118,6 +1240,7 @@ pub mod serde_json_view {
         pub pump_count: u32,
         pub job_count: U64,
         pub ledger_count: U64,
+        pub owed_count: U64,
         pub free: U128,
         pub vault_code_hash: String,
         pub vault_code_bytes: u32,

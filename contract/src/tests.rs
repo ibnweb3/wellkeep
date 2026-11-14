@@ -731,3 +731,139 @@ fn after_a_transfer_the_old_steward_cannot_change_deputies() {
     ctx(STEWARD, 0, 2 * SEC);
     c.set_deputy(0, acct("friend.testnet"), true);
 }
+
+// ---- a payout the stablecoin refuses: recorded as owed, retried, reassigned
+
+fn ctx_result(who: &str, t: u64, result: near_sdk::PromiseResult) {
+    testing_env!(
+        VMContextBuilder::new()
+            .current_account_id(acct("pool.testnet"))
+            .predecessor_account_id(acct(who))
+            .block_timestamp(t)
+            .random_seed([7u8; 32])
+            .build(),
+        near_sdk::test_vm_config(),
+        near_sdk::RuntimeFeesConfig::test(),
+        Default::default(),
+        vec![result]
+    );
+}
+
+/// A job approved by the village: 700 paid at once, 300 held. Returns its id.
+fn approved_job(c: &mut Contract, t: &Tree) -> u64 {
+    let (id, asked) = to_voting(c, t, 0, 10 * SEC);
+    for hh in asked.iter().copied().take(3) {
+        ctx("relay.testnet", 0, 20 * SEC);
+        c.vote(id, true, t.cred(hh, if hh == 0 { 1 } else { 0 }, ACT_YES));
+    }
+    assert_eq!(c.get_job(id).unwrap().status, Status::Approved);
+    id
+}
+
+fn refuse_first_payment(c: &mut Contract, id: u64) {
+    ctx_result("pool.testnet", 21 * SEC, near_sdk::PromiseResult::Failed);
+    c.on_paid(id, 0, U128(700), acct("mech.testnet"), "first".into());
+}
+
+#[test]
+fn a_refused_payout_becomes_owed_and_leaves_the_paid_totals() {
+    let (mut c, t) = setup();
+    let id = approved_job(&mut c, &t);
+    assert_eq!(c.get_pump(0).unwrap().paid_total.0, 700);
+    refuse_first_payment(&mut c, id);
+    let owed = c.list_owed(0, 10);
+    assert_eq!(owed.len(), 1);
+    assert_eq!((owed[0].amount.0, owed[0].state.clone()), (700, OwedState::Open));
+    assert_eq!(owed[0].to.to_string(), "mech.testnet");
+    // the books must not claim money that did not move
+    assert_eq!(c.get_pump(0).unwrap().paid_total.0, 0);
+    assert_eq!(c.get_mechanic(acct("mech.testnet")).unwrap().earned.0, 0);
+    assert_eq!(c.get_config().owed_count.0, 1);
+    assert_eq!(c.list_ledger(0, 100).last().unwrap().kind, "pay_failed_first");
+}
+
+#[test]
+fn a_payout_that_succeeds_leaves_nothing_owed() {
+    let (mut c, t) = setup();
+    let id = approved_job(&mut c, &t);
+    ctx_result("pool.testnet", 21 * SEC, near_sdk::PromiseResult::Successful(vec![]));
+    c.on_paid(id, 0, U128(700), acct("mech.testnet"), "first".into());
+    assert!(c.list_owed(0, 10).is_empty());
+    assert_eq!(c.get_pump(0).unwrap().paid_total.0, 700);
+}
+
+#[test]
+fn anyone_can_retry_and_a_retry_cannot_be_repeated_while_in_flight() {
+    let (mut c, t) = setup();
+    let id = approved_job(&mut c, &t);
+    refuse_first_payment(&mut c, id);
+    ctx("anyone.testnet", 0, 30 * SEC);
+    c.retry_payment(0);
+    assert_eq!(c.get_owed(0).unwrap().state, OwedState::Retrying);
+    assert_eq!(c.list_ledger(0, 100).last().unwrap().kind, "pay_retry");
+}
+
+#[test]
+#[should_panic(expected = "not waiting for a retry")]
+fn a_second_retry_while_one_is_in_flight_is_refused() {
+    let (mut c, t) = setup();
+    let id = approved_job(&mut c, &t);
+    refuse_first_payment(&mut c, id);
+    ctx("anyone.testnet", 0, 30 * SEC);
+    c.retry_payment(0);
+    c.retry_payment(0);
+}
+
+#[test]
+#[should_panic(expected = "no such failed payment")]
+fn retrying_something_that_was_never_owed_is_refused() {
+    let (mut c, _) = setup();
+    ctx("anyone.testnet", 0, 0);
+    c.retry_payment(7);
+}
+
+#[test]
+fn a_successful_retry_closes_it_and_restores_the_totals() {
+    let (mut c, t) = setup();
+    let id = approved_job(&mut c, &t);
+    refuse_first_payment(&mut c, id);
+    ctx("anyone.testnet", 0, 30 * SEC);
+    c.retry_payment(0);
+    ctx_result("pool.testnet", 31 * SEC, near_sdk::PromiseResult::Successful(vec![]));
+    c.on_retried(0);
+    assert_eq!(c.get_owed(0).unwrap().state, OwedState::Paid);
+    assert_eq!(c.get_pump(0).unwrap().paid_total.0, 700);
+    assert_eq!(c.get_mechanic(acct("mech.testnet")).unwrap().earned.0, 700);
+    assert_eq!(c.list_ledger(0, 100).last().unwrap().kind, "pay_recovered");
+}
+
+#[test]
+fn a_failed_retry_reopens_it() {
+    let (mut c, t) = setup();
+    let id = approved_job(&mut c, &t);
+    refuse_first_payment(&mut c, id);
+    ctx("anyone.testnet", 0, 30 * SEC);
+    c.retry_payment(0);
+    ctx_result("pool.testnet", 31 * SEC, near_sdk::PromiseResult::Failed);
+    c.on_retried(0);
+    assert_eq!(c.get_owed(0).unwrap().state, OwedState::Open);
+    assert_eq!(c.get_pump(0).unwrap().paid_total.0, 0);
+    assert_eq!(c.list_ledger(0, 100).last().unwrap().kind, "pay_retry_failed");
+}
+
+#[test]
+fn both_signers_can_point_an_owed_payment_at_another_account() {
+    let (mut c, t) = setup();
+    let id = approved_job(&mut c, &t);
+    refuse_first_payment(&mut c, id);
+    let act = Action::ReassignOwed { id: 0, to: acct("new-mech.testnet") };
+    ctx("a.testnet", 0, 40 * SEC);
+    assert!(!c.approve_action(act.clone()));
+    assert_eq!(c.get_owed(0).unwrap().to.to_string(), "mech.testnet"); // one signer alone changes nothing
+    ctx("b.testnet", 0, 41 * SEC);
+    assert!(c.approve_action(act));
+    let o = c.get_owed(0).unwrap();
+    assert_eq!(o.to.to_string(), "new-mech.testnet");
+    assert_eq!(o.mechanic.to_string(), "mech.testnet"); // the record of who earned it does not move
+    assert_eq!(c.list_ledger(0, 100).last().unwrap().kind, "pay_reassigned");
+}
