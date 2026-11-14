@@ -134,7 +134,7 @@ What is different: the fund is public and keyless, so a donor can see and check 
 - **A held share can be denied by two dishonest households.** Two reports forfeit it. The mechanic has no appeal in this version.
 - **No phone coverage means no votes.** The design leans on SMS and printed cards; this is untested.
 - **A failed payout has no recovery path.** If the USDC contract refuses a transfer out of a pump's account (for example the mechanic's account was deleted), the pool's callback records a `pay_failed` ledger entry, but the money stays in the vault and the job still reads as paid. The contract is immutable, so this cannot be added to this pool. Mechanics are registered with the USDC contract when they are added, which makes it unlikely.
-- **The sandbox has finite capacity.** It spends one-time card rows (180 in total, 6 per full repair, so about 28 full repairs remain on this pool) and test USDC, and it runs on a relayer account with a small NEAR balance. `/api/*` is rate limited (30 requests a minute per caller, 120 for everyone) so one caller cannot burn it, but many callers together still could. Real use needs more card batches (the contract supports adding them; the demo page uses one).
+- **The sandbox has finite capacity.** It spends one-time card rows (180 in total, 6 per full repair, so about 28 full repairs remain on this pool) and test USDC, and it runs on a relayer account with a small NEAR balance. `/api/*` is rate limited by an exact Durable Object counter (30 requests a minute per caller, 120 for everyone) so one caller cannot burn it, but many callers together still could. Real use needs more card batches (the contract supports adding them; the demo page uses one).
 - **A committee can be captured.** The DAO is as honest as its council, and one deputy can approve a mid-size quote alone. Quotes within a trusted mechanic's limit need no approval at all.
 - **Real money.** Nigeria and Kenya tightened stablecoin rules in November 2026, and I found no evidence of rural mechanics using stablecoins. A real deployment needs a licensed off-ramp partner.
 - **Donor demand is unproven.** I found no evidence that small donors would fund maintenance over new wells.
@@ -175,7 +175,7 @@ node tools/sync-web.mjs                   # bundles the verifier, copies evidenc
 npx wrangler dev                          # needs .dev.vars: RELAY_KEY (a testnet key)
 ```
 
-The Worker's `/api/*` rate limits are Cloudflare Rate Limiting bindings declared in `wrangler.toml`; the page tries four public testnet RPC endpoints in turn (`web/public/config.json`).
+The Worker's `/api/*` rate limits are exact counters in a Durable Object (`Limiter` in `web/src/worker.js`, declared in `wrangler.toml`); the page tries four public testnet RPC endpoints in turn (`web/public/config.json`).
 
 ## AI use disclosure
 

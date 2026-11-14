@@ -11,8 +11,9 @@
 //                 pumps held by the village committee DAO refuse these calls. Quotes are capped. Real mechanics use their own wallets.
 // Donors and mechanics sign with their own wallets in the browser; this server never holds their keys.
 // The relayer key is a throwaway TESTNET key held as a Worker secret. Nothing here touches mainnet.
-// Both endpoints are rate limited per caller and overall, because anyone on the internet can call them.
+// Both endpoints are rate limited per caller and overall (a Durable Object counter), because anyone on the internet can call them.
 import { Near } from "near-kit";
+import { DurableObject } from "cloudflare:workers";
 
 const RELAY_METHODS = new Set(["report_broken", "vote", "redraw_sample", "release_held"]);
 const SANDBOX_METHODS = new Set(["accept_job", "post_fix", "steward_approve", "steward_reject"]);
@@ -52,13 +53,32 @@ async function send(near, pool, method, args, deposit) {
 }
 
 /**
- * Rate limits (Cloudflare Rate Limiting bindings, see wrangler.toml): one caller cannot spend the relayer's gas
- * or burn the demo's one-time card codes, and the whole demo has a ceiling per minute. Returns an error text, or null.
+ * Exact fixed-window counters in one Durable Object (a single instance, so the counts are strongly consistent;
+ * Cloudflare's Rate Limiting binding is eventually consistent and let a 200-request burst through in testing).
+ * The counters live in memory, so they reset if the object is evicted, which only ever makes the limit more lenient.
  */
+export class Limiter extends DurableObject {
+  buckets = new Map();
+  hit(key, limit, windowMs) {
+    const now = Date.now();
+    for (const [k, b] of this.buckets) if (now - b.start >= windowMs) this.buckets.delete(k);
+    const b = this.buckets.get(key) ?? { start: now, n: 0 };
+    b.n += 1;
+    this.buckets.set(key, b);
+    return b.n <= limit;
+  }
+}
+
+const PER_IP_LIMIT = 30; // requests a minute per caller: a full repair on the Try page is about 9
+const ALL_LIMIT = 120; // requests a minute for everyone together: caps what the demo can spend on gas
+
+/** One caller cannot spend the relayer's gas or burn the demo's one-time card codes. Returns an error text, or null. */
 async function overLimit(req, env) {
+  if (!env.LIMITER) return null; // not configured (for example a plain local run)
   const ip = req.headers.get("cf-connecting-ip") || "unknown";
-  if (env.PER_IP && !(await env.PER_IP.limit({ key: ip })).success) return "Too many requests from your connection. Wait a minute and try again.";
-  if (env.ALL_CALLERS && !(await env.ALL_CALLERS.limit({ key: "all" })).success) return "The test relayer is busy right now. Wait a minute and try again.";
+  const box = env.LIMITER.get(env.LIMITER.idFromName("limits"));
+  if (!(await box.hit(`ip:${ip}`, PER_IP_LIMIT, 60_000))) return "Too many requests from your connection. Wait a minute and try again.";
+  if (!(await box.hit("all", ALL_LIMIT, 60_000))) return "The test relayer is busy right now. Wait a minute and try again.";
   return null;
 }
 
