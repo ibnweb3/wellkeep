@@ -1,13 +1,13 @@
 {
- "checkedAt": "2026-11-13T08:21:31.334Z",
+ "checkedAt": "2026-11-13T23:58:50.504Z",
  "network": "testnet",
- "poolId": "0s4123b90f113c99ea1492d8ef8e658f0890153193",
+ "poolId": "0sedce5ef2a8c3f587df86bd10a8a631fb9f7eaa19",
  "results": [
   {
    "id": "account",
    "title": "The account exists on-chain",
    "ok": true,
-   "detail": "0s4123b90f113c99ea1492d8ef8e658f0890153193"
+   "detail": "0sedce5ef2a8c3f587df86bd10a8a631fb9f7eaa19"
   },
   {
    "id": "keys",
@@ -19,31 +19,37 @@
    "id": "byhash",
    "title": "Its code is referenced by hash, so the publisher cannot change it",
    "ok": true,
-   "detail": "global code hash 3ecEVdauLBD77PNzxB7VjpeaDhX5wNdpw1iT1HrHdqW7"
+   "detail": "global code hash 5rqAFCQTLhWNzYJskq1H5tE4RifUmyTDx1pX4FTtZGhs"
   },
   {
    "id": "wasm",
    "title": "The code at that hash is the wasm shipped in this repository",
    "ok": true,
-   "detail": "repository wasm 230074 bytes, sha256 as base58: 3ecEVdauLBD77PNzxB7VjpeaDhX5wNdpw1iT1HrHdqW7"
+   "detail": "repository wasm 292449 bytes, sha256 as base58: 5rqAFCQTLhWNzYJskq1H5tE4RifUmyTDx1pX4FTtZGhs"
   },
   {
    "id": "chaincode",
    "title": "The code the chain stores under that hash is byte-identical to the repository wasm",
    "ok": true,
-   "detail": "230074 bytes read back from the chain"
+   "detail": "292449 bytes read back from the chain"
   },
   {
    "id": "address",
    "title": "The address is derived from exactly this code and this starting state",
    "ok": true,
-   "detail": "recomputed here: 0s4123b90f113c99ea1492d8ef8e658f0890153193"
+   "detail": "recomputed here: 0sedce5ef2a8c3f587df86bd10a8a631fb9f7eaa19"
   },
   {
    "id": "rules",
    "title": "The signers, rules and household-code root reported today match the committed starting state",
    "ok": true,
-   "detail": "signers bh-signer-a.testnet + bh-signer-b.testnet; 30 households; code root dd5046f80436a1e8..."
+   "detail": "signers bh-signer-a.testnet + bh-signer-b.testnet; 30 households; money is the NEP-141 token 3e2210e118...; code root dd5046f80436a1e8..."
+  },
+  {
+   "id": "vaults",
+   "title": "Every water point's own account has no keys and runs exactly the vault code shipped here",
+   "ok": true,
+   "detail": "6 pump account(s), 0 keys each, code hash 3Pcz3nieBrewZPiwqBuepTU6x2aHGvUc2WziCxGJZB2D (3938 bytes)"
   }
  ]
 }

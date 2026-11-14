@@ -8,6 +8,7 @@ const realFetch = globalThis.fetch;
 globalThis.fetch = async (u, o) => {
   const s = String(u);
   if (s === "local:wasm") return new Response(readFileSync("evidence/wellkeep_pool.wasm"));
+  if (s === "local:vault") return new Response(readFileSync("evidence/wellkeep_vault.wasm"));
   if (s === "local:state") return new Response(readFileSync("evidence/state-init.json"));
   return realFetch(u, o);
 };
@@ -15,6 +16,7 @@ const results = await runChecks({
   rpcUrl: process.env.RPC_URL || "https://test.rpc.fastnear.com",
   poolId: pub.poolId,
   wasmUrl: "local:wasm",
+  vaultWasmUrl: "local:vault",
   stateUrl: "local:state",
 });
 for (const r of results) console.log(r.ok ? "PASS" : "FAIL", "-", r.title, "|", r.detail);

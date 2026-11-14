@@ -30,7 +30,7 @@ if (mode === "publish") {
   console.log("publish tx", out?.transaction?.hash ?? "ok");
   writeFileSync("evidence/publish.json", JSON.stringify({ codeHash, sha256hex: hash.toString("hex"), bytes: wasm.length, publisher: deployer, tx: out?.transaction?.hash, at: new Date().toISOString() }, null, 1));
 } else if (mode === "create") {
-  const out = await nearFor(deployer).transaction(deployer).stateInit({ code: { codeHash: hash }, data, deposit: "3 NEAR" }).send();
+  const out = await nearFor(deployer).transaction(deployer).stateInit({ code: { codeHash: hash }, data, deposit: "0.3 NEAR" }).send();
   console.log("create tx", out?.transaction?.hash ?? "ok", "status", JSON.stringify(out?.status).slice(0, 200));
   const prev = existsSync("evidence/publish.json") ? JSON.parse(readFileSync("evidence/publish.json", "utf8")) : {};
   writeFileSync("evidence/publish.json", JSON.stringify({ ...prev, poolId, createTx: out?.transaction?.hash }, null, 1));
