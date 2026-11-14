@@ -51,9 +51,11 @@ Source: the research report the owner commissioned (not independently re-checked
 - The SMS gateway. The SMS path is described, not wired.
 - NEAR Intents top-ups. Intents has no testnet.
 - A meta-transaction relay for mechanics and stewards (they sign with their own wallet).
+- A recovery path for a payout that fails at the USDC contract (it is logged as `pay_failed`; the contract is immutable).
+- Enough card batches for heavy use: the demo has one batch (about 28 full repairs), and `/api/*` is rate limited so one caller cannot exhaust it.
 - Crediting a plain USDC transfer sent straight to a pump's account (it is held safely but uncounted until `ft_transfer_call`).
 - Sensors, biometrics, photo or GPS proof, mainnet deployment, real stablecoins, any real personal data.
-- A real wallet-signed donation, quote or NFT transfer was not completed in my own test session. The relayer, sandbox, DAO and command-line paths were.
+- A real wallet-signed donation, quote, steward or deputy action, or NFT transfer was not completed in my own test session. The relayer, sandbox, DAO and command-line paths were, including a pump NFT transfer and deputy changes on the real pool (`evidence/live-nft.json`).
 
 ## NEAR centrality: the plain answer
 

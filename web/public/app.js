@@ -20,15 +20,35 @@ const NFT = new Map(); // nft_token reads, cached per ownership
 let CARDS = null;
 
 // ---------------------------------------------------------------- chain reads (public RPC, direct)
+// The public testnet RPCs rate-limit now and then. Try the next one on a network error, HTTP 429 or 5xx; a real
+// JSON-RPC error (a contract refusing a call) is the answer and is thrown at once. The last good endpoint is kept.
+let rpcFirst = 0;
 async function rpc(method, params) {
-  const r = await fetch(CONFIG.rpcUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-  });
-  const j = await r.json();
-  if (j.error) throw new Error(j.error.data || j.error.message);
-  return j.result;
+  const urls = CONFIG.rpcUrls ?? [CONFIG.rpcUrl];
+  let lastErr;
+  for (let n = 0; n < urls.length; n++) {
+    const i = (rpcFirst + n) % urls.length;
+    try {
+      const r = await fetch(urls[i], {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+      });
+      if (r.status === 429 || r.status >= 500) throw new Error(`RPC ${r.status}`);
+      const j = await r.json();
+      if (j.error) {
+        const e = new Error(j.error.data || j.error.message);
+        e.rpcAnswer = true;
+        throw e;
+      }
+      rpcFirst = i;
+      return j.result;
+    } catch (e) {
+      if (e.rpcAnswer) throw e;
+      lastErr = e;
+    }
+  }
+  throw lastErr;
 }
 async function viewAt(account, method, args = {}) {
   const r = await rpc("query", {
@@ -57,11 +77,14 @@ async function loadDao() {
 }
 
 async function load() {
-  const [cfg, pumps, jobs, ledger, acct, block, mechs, poolUsdc, dao] = await Promise.all([
-    view("get_config"),
+  const cfg = await view("get_config");
+  // the newest entries, so the page stays current once the lists outgrow one read
+  const jobsFrom = Math.max(0, Number(cfg.job_count) - 100);
+  const ledgerFrom = Math.max(0, Number(cfg.ledger_count) - 400);
+  const [pumps, jobs, ledger, acct, block, mechs, poolUsdc, dao] = await Promise.all([
     view("list_pumps"),
-    view("list_jobs", { from: 0, limit: 100 }),
-    view("list_ledger", { from: 0, limit: 400 }),
+    view("list_jobs", { from: jobsFrom, limit: 100 }),
+    view("list_ledger", { from: ledgerFrom, limit: 400 }),
     rpc("query", { request_type: "view_account", finality: "final", account_id: CONFIG.poolId }),
     rpc("block", { finality: "final" }),
     view("list_mechanics"),
@@ -951,7 +974,8 @@ function wire(r) {
     fillInvoiceTx(jobById(r.id));
     document.getElementById("csv-one")?.addEventListener("click", () => {
       const rows = invoiceRows();
-      download(`${invNo(jobById(r.id))}.csv`, [rows[0], rows[r.id + 1]]);
+      const no = invNo(jobById(r.id));
+      download(`${no}.csv`, [rows[0], rows.find((x) => x[0] === no)]);
     });
     return;
   }
@@ -1030,7 +1054,7 @@ async function runCheck() {
   list.innerHTML = `<li class="muted">Reading the chain...</li>`;
   try {
     const { runChecks } = await import("/verify-bundle.js");
-    const results = await runChecks({ rpcUrl: CONFIG.rpcUrl, poolId: CONFIG.poolId, wasmUrl: "/evidence/wellkeep_pool.wasm", vaultWasmUrl: "/evidence/wellkeep_vault.wasm", stateUrl: "/evidence/state-init.json" });
+    const results = await runChecks({ rpcUrl: CONFIG.rpcUrls ?? CONFIG.rpcUrl, poolId: CONFIG.poolId, wasmUrl: "/evidence/wellkeep_pool.wasm", vaultWasmUrl: "/evidence/wellkeep_vault.wasm", stateUrl: "/evidence/state-init.json" });
     lastChecks = results;
     list.innerHTML = checksHtml();
     say(null, results.every((x) => x.ok) ? "All checks passed" : "Some checks failed");

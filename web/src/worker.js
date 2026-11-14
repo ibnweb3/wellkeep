@@ -11,6 +11,7 @@
 //                 pumps held by the village committee DAO refuse these calls. Quotes are capped. Real mechanics use their own wallets.
 // Donors and mechanics sign with their own wallets in the browser; this server never holds their keys.
 // The relayer key is a throwaway TESTNET key held as a Worker secret. Nothing here touches mainnet.
+// Both endpoints are rate limited per caller and overall, because anyone on the internet can call them.
 import { Near } from "near-kit";
 
 const RELAY_METHODS = new Set(["report_broken", "vote", "redraw_sample", "release_held"]);
@@ -50,8 +51,21 @@ async function send(near, pool, method, args, deposit) {
   return { ok: true, hash: out?.transaction?.hash ?? null };
 }
 
+/**
+ * Rate limits (Cloudflare Rate Limiting bindings, see wrangler.toml): one caller cannot spend the relayer's gas
+ * or burn the demo's one-time card codes, and the whole demo has a ceiling per minute. Returns an error text, or null.
+ */
+async function overLimit(req, env) {
+  const ip = req.headers.get("cf-connecting-ip") || "unknown";
+  if (env.PER_IP && !(await env.PER_IP.limit({ key: ip })).success) return "Too many requests from your connection. Wait a minute and try again.";
+  if (env.ALL_CALLERS && !(await env.ALL_CALLERS.limit({ key: "all" })).success) return "The test relayer is busy right now. Wait a minute and try again.";
+  return null;
+}
+
 async function handle(req, env) {
   if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
+  const busy = await overLimit(req, env);
+  if (busy) return json({ ok: false, error: busy }, 429);
   let body;
   try {
     body = await req.json();

@@ -34,6 +34,8 @@ writeFileSync(
       poolId: pub.poolId,
       codeHash: pub.codeHash,
       rpcUrl: "https://test.rpc.fastnear.com",
+      // tried in order when one rate-limits or fails; all four allow browser requests and serve testnet
+      rpcUrls: ["https://test.rpc.fastnear.com", "https://rpc.testnet.fastnear.com", "https://rpc.testnet.near.org", "https://near-testnet.drpc.org"],
       explorer: "https://testnet.nearblocks.io",
       explorerApi: "https://api-testnet.nearblocks.io", // token-transfer index used for the invoice transaction links
       token: "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af", // Circle testnet USDC (6 decimals)

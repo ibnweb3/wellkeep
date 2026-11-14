@@ -22,15 +22,31 @@ const sha256 = async (u8) => new Uint8Array(await crypto.subtle.digest("SHA-256"
 const eq = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
 const hex = (u8) => [...u8].map((b) => b.toString(16).padStart(2, "0")).join("");
 
+// `url` is one endpoint or a list: a network error, HTTP 429 or 5xx moves on to the next endpoint; a JSON-RPC error is the answer.
 async function rpc(url, method, params) {
-  const r = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-  });
-  const j = await r.json();
-  if (j.error) throw new Error(j.error.data || j.error.message || "rpc error");
-  return j.result;
+  const urls = Array.isArray(url) ? url : [url];
+  let lastErr;
+  for (const u of urls) {
+    try {
+      const r = await fetch(u, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+      });
+      if (r.status === 429 || r.status >= 500) throw new Error(`RPC ${r.status}`);
+      const j = await r.json();
+      if (j.error) {
+        const e = new Error(j.error.data || j.error.message || "rpc error");
+        e.rpcAnswer = true;
+        throw e;
+      }
+      return j.result;
+    } catch (e) {
+      if (e.rpcAnswer) throw e;
+      lastErr = e;
+    }
+  }
+  throw lastErr;
 }
 
 /** Decodes the Borsh bytes of the contract's initial state (layout in contract/src/lib.rs). */

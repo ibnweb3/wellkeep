@@ -1,0 +1,60 @@
+{
+ "pool": "0se442fd5f33732a4fc919dbdc4b24589990ac9e5d",
+ "token": "pump-5",
+ "ownerAfterFirstTransfer": "bh-signer-a.testnet",
+ "oldHolderRefused": "Smart contract panicked: only this pump's steward can set its cap",
+ "holdersAtEnd": [
+  "bh-relay.testnet",
+  "bh-signer-a.testnet",
+  "bh-relay.testnet"
+ ],
+ "steps": [
+  {
+   "label": "bh-relay.testnet transfers NFT pump-5 to bh-signer-a.testnet",
+   "hash": "EpBKwTry7hLg84s4TcytiM6kEjdJTSpM6LRY7MwA2KCR"
+  },
+  {
+   "label": "bh-signer-a.testnet (new steward) adds bh-council-1.testnet as a deputy of pump 5",
+   "hash": "Etu4XfVEj98iWo6JTeAL61Ua4ggtGKLXR5T92G5AbPzL"
+  },
+  {
+   "label": "bh-signer-a.testnet removes the deputy again",
+   "hash": "4Xwdq2RCo1cFbd8ydg3Zx7ueJMB9M7SBbGPWnPuBiv4t"
+  },
+  {
+   "label": "bh-signer-a.testnet transfers NFT pump-5 back to bh-relay.testnet",
+   "hash": "AirGQYPUcdHksCXMVh9WiTDhiSG1KU1XJuUoCkyXfmvE"
+  }
+ ],
+ "nep171Events": [
+  {
+   "standard": "nep171",
+   "version": "1.2.0",
+   "event": "nft_transfer",
+   "data": [
+    {
+     "old_owner_id": "bh-relay.testnet",
+     "new_owner_id": "bh-signer-a.testnet",
+     "token_ids": [
+      "pump-5"
+     ]
+    }
+   ]
+  },
+  {
+   "standard": "nep171",
+   "version": "1.2.0",
+   "event": "nft_transfer",
+   "data": [
+    {
+     "old_owner_id": "bh-signer-a.testnet",
+     "new_owner_id": "bh-relay.testnet",
+     "token_ids": [
+      "pump-5"
+     ]
+    }
+   ]
+  }
+ ],
+ "at": "2026-11-14T01:18:41.172Z"
+}

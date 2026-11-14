@@ -15,7 +15,7 @@ Each claim below names what is built and where to see it. What is not built is l
 **NFTs That Do Something: the NFT is the account, and ownership has behaviour.**
 - Each water point is an NEP-171 token `pump-N` (`nft_token`, `nft_tokens_for_owner`, `nft_transfer`) and a keyless sub-account `pump-N.<pool>` that holds that pump's USDC. The pool creates the account with the embedded 3,938-byte vault code and **no access key**; the vault can pay out only when the pool tells it to.
 - Whoever holds the NFT is the pump's **steward**: they approve quotes above a mechanic's automatic limit and set the highest quote the pump will take. Transfer the token and that control moves; the money stays in the pump's own account.
-- What stops the old owner: after `nft_transfer` the contract checks the caller against the new holder on every steward call, and the payee of a job in progress was fixed when the mechanic took the job, so a sale cannot redirect a payout. Unit tests `a_sale_in_the_middle_of_a_payout_still_pays_the_mechanic` and `the_old_holder_loses_quote_approval_after_a_transfer` cover this.
+- What stops the old owner: after `nft_transfer` the contract checks the caller against the new holder on every steward call, and the payee of a job in progress was fixed when the mechanic took the job, so a sale cannot redirect a payout. Unit tests `a_sale_in_the_middle_of_a_payout_still_pays_the_mechanic` and `the_old_holder_loses_quote_approval_after_a_transfer` cover this. It was also run on the real pool (`evidence/live-nft.json`): `pump-5` was transferred to another account, the old holder was refused, the new steward added and removed a deputy, the token went back, the holder list shows all three holders, and the NEP-171 `nft_transfer` events were logged.
 - Per-NFT history: holders (oldest first), paid out, finished repairs, forfeits and the quote cap, shown on each water point's page and returned by `get_pump`.
 - Household passes (`hh-N`) are NFTs too, but they are credentials for voting and are **not** transferable (`nft_transfer` refuses them).
 
@@ -71,7 +71,7 @@ Not real, and labelled as such on the site:
 - On the Village B pumps the sandbox account `bh-relay.testnet` is both the steward and the sandbox mechanic, so one visitor can walk the whole flow. The contract does not forbid a steward from also being the mechanic; a real committee should not do that.
 - The hold period is one hour so a reviewer can see the release; a real deployment would use days or weeks. It is a parameter fixed in the pool's starting state.
 - A plain USDC transfer to a pump's account is held safely but is not counted by the pool until credited. Use `ft_transfer_call` (the site's buttons do).
-- Wallet signing goes through `@hot-labs/near-connect`. I did not complete a real wallet signature in my own test session, so the wallet-signed donor, mechanic and steward buttons are written and wired but not proven end to end by me. The relayer, sandbox, DAO and CLI paths are proven (see Evidence).
+- Wallet signing goes through `@hot-labs/near-connect` (its wallet list loads on the live site: Meteor, Intear, Ledger, Nightly and others). I did not complete a real wallet signature in my own test session, and I have not confirmed which of those wallets sign on testnet, so the wallet-signed donor, mechanic, steward and deputy buttons are written and wired but not proven end to end by me. The same contract calls are proven from the command line, through the relayer and sandbox, and through the DAO (see Evidence).
 
 ## How it works
 
@@ -133,6 +133,8 @@ What is different: the fund is public and keyless, so a donor can see and check 
 - **Votes are linkable to a card.** Anyone who knows which card is whose can see how it voted.
 - **A held share can be denied by two dishonest households.** Two reports forfeit it. The mechanic has no appeal in this version.
 - **No phone coverage means no votes.** The design leans on SMS and printed cards; this is untested.
+- **A failed payout has no recovery path.** If the USDC contract refuses a transfer out of a pump's account (for example the mechanic's account was deleted), the pool's callback records a `pay_failed` ledger entry, but the money stays in the vault and the job still reads as paid. The contract is immutable, so this cannot be added to this pool. Mechanics are registered with the USDC contract when they are added, which makes it unlikely.
+- **The sandbox has finite capacity.** It spends one-time card rows (180 in total, 6 per full repair, so about 28 full repairs remain on this pool) and test USDC, and it runs on a relayer account with a small NEAR balance. `/api/*` is rate limited (30 requests a minute per caller, 120 for everyone) so one caller cannot burn it, but many callers together still could. Real use needs more card batches (the contract supports adding them; the demo page uses one).
 - **A committee can be captured.** The DAO is as honest as its council, and one deputy can approve a mid-size quote alone. Quotes within a trusted mechanic's limit need no approval at all.
 - **Real money.** Nigeria and Kenya tightened stablecoin rules in November 2026, and I found no evidence of rural mechanics using stablecoins. A real deployment needs a licensed off-ramp partner.
 - **Donor demand is unproven.** I found no evidence that small donors would fund maintenance over new wells.
@@ -142,6 +144,7 @@ What is different: the fund is public and keyless, so a donor can see and check 
 ## Evidence
 
 - `evidence/verification.json` - the eight checks, run against the live pool.
+- `evidence/live-nft.json` - the pump NFT transfer, deputy changes and NEP-171 events on the real pool, with transaction hashes.
 - `evidence/live-run-v3.json` - two live repairs on the real pool with real Circle USDC: a 2.5 USDC quote approved by one council member alone, and a 4 USDC quote where the council member was refused and DAO proposal 1 (2 of 3 votes) approved it; five household votes each; 1.75 and 2.80 USDC paid from the pumps' own accounts, with the transaction hashes of the report, quote, approval, fix and votes.
 - `evidence/publish.json` - code hash, publisher, pool address. `evidence/wellkeep_pool.wasm`, `evidence/wellkeep_vault.wasm` and `evidence/state-init.json` - the exact code and starting state the addresses commit to.
 - `tools/scratch-v2.mjs` - the same flow on a throwaway pool, run with a mock NEP-141 token before publishing: donation routing, the big-quote gate, an NFT transfer in the middle of a job (the old holder is refused), the 70/30 payout from the vault, the reputation update, and a deputy refused on a quote above the council-member limit.
@@ -172,9 +175,11 @@ node tools/sync-web.mjs                   # bundles the verifier, copies evidenc
 npx wrangler dev                          # needs .dev.vars: RELAY_KEY (a testnet key)
 ```
 
+The Worker's `/api/*` rate limits are Cloudflare Rate Limiting bindings declared in `wrangler.toml`; the page tries four public testnet RPC endpoints in turn (`web/public/config.json`).
+
 ## AI use disclosure
 
-I built this with Claude Code (Anthropic) as a pair-programming agent: the contracts, tests, tooling, web app and this README were written with it. The design (donor-first, household cards, random sample, two-stage payment, one account per pump, NFT stewardship, DAO committee) was worked out in conversation, and the field-evidence section came from a separate research report that I did not independently verify beyond the peer-reviewed sources. Photos in the site are from Wikimedia Commons (credits in the page footer). Libraries: `near-sdk` (Rust), `near-sys`, `near-kit`, `esbuild`, `wrangler`. No code from before the hackathon window.
+I built this with Claude Code (Anthropic) as a pair-programming agent: the contracts, tests, tooling, web app and this README were written with it. The design (donor-first, household cards, random sample, two-stage payment, one account per pump, NFT stewardship, DAO committee) was worked out in conversation, and the field-evidence section came from a separate research report that I did not independently verify beyond the peer-reviewed sources. Photos in the site are from Wikimedia Commons (credits in the page footer). The visual style was inspired by the Framer template Satz; no template code or assets were used. No other templates or boilerplate: the Worker config is the standard `wrangler` layout. Libraries: `near-sdk` (Rust), `near-sys`, `near-kit`, `@hot-labs/near-connect`, `esbuild`, `wrangler`; the page uses Google Fonts (Inter Tight). No code from before the hackathon window.
 
 ## License
 

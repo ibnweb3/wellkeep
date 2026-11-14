@@ -2,6 +2,12 @@
  "poolId": "0se442fd5f33732a4fc919dbdc4b24589990ac9e5d",
  "codeHash": "AWgU7hAEP1bh3DwGcEf3cMaKrjMt3EDy439rgA9y6znF",
  "rpcUrl": "https://test.rpc.fastnear.com",
+ "rpcUrls": [
+  "https://test.rpc.fastnear.com",
+  "https://rpc.testnet.fastnear.com",
+  "https://rpc.testnet.near.org",
+  "https://near-testnet.drpc.org"
+ ],
  "explorer": "https://testnet.nearblocks.io",
  "explorerApi": "https://api-testnet.nearblocks.io",
  "token": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
