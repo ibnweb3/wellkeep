@@ -76,6 +76,7 @@ impl Tree {
 
 const TOKEN: &str = "usdc.testnet";
 const STEWARD: &str = "council.testnet";
+const DEPUTY: &str = "dep.testnet";
 
 fn params() -> Params {
     Params {
@@ -87,6 +88,7 @@ fn params() -> Params {
         max_price: U128(10_000),
         tier0_cap: U128(1_500),
         tier1_cap: U128(4_000),
+        mid_cap: U128(6_000),
         first_pct: 70,
         rebroken_needed: 2,
         max_attempts: 2,
@@ -118,8 +120,8 @@ fn setup() -> (Contract, Tree) {
     let mut c = Contract::build([acct("a.testnet"), acct("b.testnet")], params(), tree.root().to_vec(), HH);
     for act in [
         Action::AddMechanic { account: acct("mech.testnet") },
-        Action::AddPump { name: "Well 1".into(), steward: acct(STEWARD) },
-        Action::AddPump { name: "Well 2".into(), steward: acct(STEWARD) },
+        Action::AddPump { name: "Well 1".into(), steward: acct(STEWARD), deputies: vec![acct(DEPUTY)] },
+        Action::AddPump { name: "Well 2".into(), steward: acct(STEWARD), deputies: vec![acct(DEPUTY)] },
     ] {
         ctx("a.testnet", 0, 0);
         assert!(!c.approve_action(act.clone()));
@@ -340,7 +342,7 @@ fn price_above_fund_is_rejected() {
     let mut empty = Contract::build([acct("a.testnet"), acct("b.testnet")], params(), t.root().to_vec(), HH);
     for act in [
         Action::AddMechanic { account: acct("mech.testnet") },
-        Action::AddPump { name: "W".into(), steward: acct(STEWARD) },
+        Action::AddPump { name: "W".into(), steward: acct(STEWARD), deputies: vec![] },
     ] {
         ctx("a.testnet", 0, 0);
         empty.approve_action(act.clone());
@@ -497,7 +499,7 @@ fn a_quote_above_the_tier_waits_for_the_steward() {
 }
 
 #[test]
-#[should_panic(expected = "only this pump's steward")]
+#[should_panic(expected = "needs the pump's steward")]
 fn a_stranger_cannot_approve_a_quote() {
     let (mut c, t) = setup();
     let id = ask_for_big_quote(&mut c, &t, 3_000);
@@ -540,7 +542,7 @@ fn transferring_the_nft_hands_quote_approval_to_the_new_holder() {
 }
 
 #[test]
-#[should_panic(expected = "only this pump's steward")]
+#[should_panic(expected = "needs the pump's steward")]
 fn the_old_holder_loses_quote_approval_after_a_transfer() {
     let (mut c, t) = setup();
     let id = ask_for_big_quote(&mut c, &t, 3_000);
@@ -635,4 +637,97 @@ fn leaf_hash_matches_the_javascript_implementation() {
     let h = env::sha256_array(&d);
     let hex: String = h.iter().map(|b| format!("{b:02x}")).collect();
     assert_eq!(hex, "f762184b282337d09cf8eed8e089aeb632b1757f103f7d9cb6bf257095c0d77d");
+}
+
+// ---- three approval tiers: automatic, one deputy (council member), the steward / DAO
+
+#[test]
+fn a_deputy_can_approve_a_mid_size_quote_alone() {
+    let (mut c, t) = setup();
+    let id = ask_for_big_quote(&mut c, &t, 3_000); // above tier0 (1_500), within mid_cap (6_000)
+    assert!(!c.get_job(id).unwrap().above_mid);
+    ctx(DEPUTY, 0, 1);
+    c.steward_approve(id);
+    assert_eq!(c.get_job(id).unwrap().status, Status::Accepted);
+}
+
+#[test]
+#[should_panic(expected = "needs the pump's steward")]
+fn a_deputy_cannot_approve_above_the_deputy_limit() {
+    let (mut c, t) = setup();
+    let id = ask_for_big_quote(&mut c, &t, 7_000); // above mid_cap
+    assert!(c.get_job(id).unwrap().above_mid);
+    ctx(DEPUTY, 0, 1);
+    c.steward_approve(id);
+}
+
+#[test]
+fn the_steward_can_approve_above_the_deputy_limit() {
+    let (mut c, t) = setup();
+    let id = ask_for_big_quote(&mut c, &t, 7_000);
+    ctx(STEWARD, 0, 1);
+    c.steward_approve(id);
+    assert_eq!(c.get_job(id).unwrap().status, Status::Accepted);
+    assert_eq!(c.get_config().free.0, 93_000);
+}
+
+#[test]
+fn a_deputy_can_turn_down_a_mid_size_quote() {
+    let (mut c, t) = setup();
+    let id = ask_for_big_quote(&mut c, &t, 3_000);
+    ctx(DEPUTY, 0, 1);
+    c.steward_reject(id);
+    assert_eq!(c.get_job(id).unwrap().status, Status::Reported);
+}
+
+#[test]
+#[should_panic(expected = "needs the pump's steward")]
+fn a_stranger_cannot_decide_on_a_quote() {
+    let (mut c, t) = setup();
+    let id = ask_for_big_quote(&mut c, &t, 3_000);
+    ctx("mallory.testnet", 0, 1);
+    c.steward_reject(id);
+}
+
+#[test]
+fn the_steward_adds_and_removes_deputies() {
+    let (mut c, _) = setup();
+    ctx(STEWARD, 0, 0);
+    c.set_deputy(0, acct("new-dep.testnet"), true);
+    assert_eq!(c.get_pump(0).unwrap().deputies.len(), 2);
+    c.set_deputy(0, acct(DEPUTY), false);
+    let d = c.get_pump(0).unwrap().deputies;
+    assert_eq!(d.len(), 1);
+    assert_eq!(d[0].to_string(), "new-dep.testnet");
+    // adding the same one twice does not duplicate it
+    c.set_deputy(0, acct("new-dep.testnet"), true);
+    assert_eq!(c.get_pump(0).unwrap().deputies.len(), 1);
+}
+
+#[test]
+#[should_panic(expected = "only this pump's steward can change its deputies")]
+fn a_deputy_cannot_add_deputies() {
+    let (mut c, _) = setup();
+    ctx(DEPUTY, 0, 0);
+    c.set_deputy(0, acct("friend.testnet"), true);
+}
+
+#[test]
+#[should_panic(expected = "needs the pump's steward")]
+fn a_removed_deputy_loses_the_power_to_approve() {
+    let (mut c, t) = setup();
+    let id = ask_for_big_quote(&mut c, &t, 3_000);
+    ctx(STEWARD, 0, 1);
+    c.set_deputy(0, acct(DEPUTY), false);
+    ctx(DEPUTY, 0, 2);
+    c.steward_approve(id);
+}
+
+#[test]
+#[should_panic(expected = "only this pump's steward can change its deputies")]
+fn after_a_transfer_the_old_steward_cannot_change_deputies() {
+    let (mut c, _) = setup();
+    hand_over(&mut c, STEWARD, "village.testnet", "pump-0", SEC);
+    ctx(STEWARD, 0, 2 * SEC);
+    c.set_deputy(0, acct("friend.testnet"), true);
 }

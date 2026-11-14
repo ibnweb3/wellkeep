@@ -6,3 +6,4 @@ node_modules/
 .wrangler/
 .codex-pass.md
 photos-src/
+!evidence/v2/*.wasm

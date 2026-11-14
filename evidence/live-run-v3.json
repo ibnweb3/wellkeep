@@ -1,0 +1,87 @@
+{
+ "pool": "0se442fd5f33732a4fc919dbdc4b24589990ac9e5d",
+ "midJob": 0,
+ "largeJob": 1,
+ "daoProposal": 1,
+ "steps": [
+  {
+   "label": "hh-0 reports pump 1 broken",
+   "hash": "8yiUQtdJ29BK8crQqUmuE9yU4VoooWf2cMNrdWnDkoLv"
+  },
+  {
+   "label": "mechanic quotes 2.5 USDC on job 0 (above the 1 USDC limit, within the 3 USDC council-member limit)",
+   "hash": "8jGB9RdfwVpG8XiQNzQVU2Dh4uQmgLjdyUDkf1vqVnuR"
+  },
+  {
+   "label": "council member bh-council-1.testnet approves job 0 alone",
+   "hash": "EWPD35J6QXRrLizXfatA8RKfGsrxrGm6MhaXP6AF7VwD"
+  },
+  {
+   "label": "mechanic posts the fix on job 0",
+   "hash": "91S281HGYFN3qBJexZvDL8M8TNbrnuJd8zd4DjuVZzQz"
+  },
+  {
+   "label": "hh-0 says it works (job 0)",
+   "hash": "7pqctG8YVHnRaXRRzYZfzJfBjKgyzV2nccQ9ceLeGKnp"
+  },
+  {
+   "label": "hh-7 says it works (job 0)",
+   "hash": "fjeLFsj5UD7EmkuVDJv4qpqmTMonanv7FtNA8Q6sMve"
+  },
+  {
+   "label": "hh-16 says it works (job 0)",
+   "hash": "6fwTpyJetzAfRJixzM3JHqsLQ4KDLynzq6zRvUD378M8"
+  },
+  {
+   "label": "hh-12 says it works (job 0)",
+   "hash": "BwzsiBjVhN4hZaGCaWSiW9SEHAKEUabmDydCPDEjrDhF"
+  },
+  {
+   "label": "hh-29 says it works (job 0)",
+   "hash": "5xkzmmsxzEkc3xT3TyGZMnReHSTMhxi9KvsLvGviX1gh"
+  },
+  {
+   "label": "hh-1 reports pump 0 broken",
+   "hash": "44gu5Vcf9AK36SjeF9uQfskZKqrajMTszmfJ72nW2HZU"
+  },
+  {
+   "label": "mechanic quotes 4 USDC on job 1 (above the council-member limit)",
+   "hash": "7M7oMBRYBQs1ujqny1uW3RNp3rcGKYzRLzUowFi4amDL"
+  },
+  {
+   "label": "mechanic posts the fix on job 1",
+   "hash": "GR8BPVMwrfvEbsHVCKUxderqM7ShtqL8qfnuTkJGqJt1"
+  },
+  {
+   "label": "hh-1 says it works (job 1)",
+   "hash": "1wtFCimbP6EXQFaiwJdwjnczw38FVLgis91iz7zAEGM"
+  },
+  {
+   "label": "hh-17 says it works (job 1)",
+   "hash": "8htyNugEkQTh7QwSd6Ks8fUzZdC8nNLEUEw6nAP71ir1"
+  },
+  {
+   "label": "hh-13 says it works (job 1)",
+   "hash": "9bC8VVRJddRDjzzXEJek7sbTnzQCsXBwbi6f6XtV1vW9"
+  },
+  {
+   "label": "hh-11 says it works (job 1)",
+   "hash": "Ddiu3FtG3gzYgYqw76LQ7j7jxHYr3dzLLJqQC5VxGJPU"
+  },
+  {
+   "label": "hh-7 says it works (job 1)",
+   "hash": "8rUkdn2cwFanbNMJ83aHS7oQh6UFAsohsEJoUMmKqsk3"
+  }
+ ],
+ "midResult": {
+  "status": "Approved",
+  "paid": "1750000",
+  "held": "750000"
+ },
+ "largeResult": {
+  "status": "Approved",
+  "paid": "2800000",
+  "held": "1200000"
+ },
+ "at": "2026-11-14T00:53:27.437Z"
+}

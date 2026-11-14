@@ -1,8 +1,9 @@
 {
- "poolId": "0sedce5ef2a8c3f587df86bd10a8a631fb9f7eaa19",
- "codeHash": "5rqAFCQTLhWNzYJskq1H5tE4RifUmyTDx1pX4FTtZGhs",
+ "poolId": "0se442fd5f33732a4fc919dbdc4b24589990ac9e5d",
+ "codeHash": "AWgU7hAEP1bh3DwGcEf3cMaKrjMt3EDy439rgA9y6znF",
  "rpcUrl": "https://test.rpc.fastnear.com",
  "explorer": "https://testnet.nearblocks.io",
+ "explorerApi": "https://api-testnet.nearblocks.io",
  "token": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
  "dao": "wellkeep-village.sputnikv2.testnet",
  "sandboxSteward": "bh-relay.testnet"

@@ -6,8 +6,10 @@
 //!
 //! Money in: a donor sends the stablecoin with `ft_transfer_call` (msg `pump:N` or `pool`).
 //! Money out: only through the repair rule
-//!   report -> quote -> (steward approval if the quote is above the mechanic's tier) -> fix -> sample vote
-//!   -> 70% paid -> 30% released after a hold.
+//!   report -> quote -> approval by tier -> fix -> sample vote -> 70% paid -> 30% released after a hold.
+//! Approval tiers: a quote within the mechanic's track-record limit is taken at once; a quote up to `mid_cap`
+//! needs ONE deputy (a council member) or the steward; a quote above `mid_cap` needs the steward, which for a
+//! pump held by a DAO is a proposal the whole council votes on.
 //! Households authenticate with one-time codes from a printed card, checked against a Merkle root fixed
 //! at enrolment. A relayer submits the calls, so households hold no NEAR.
 //! Admin actions (add mechanic, add pump, ...) need BOTH signer accounts to approve the same action.
@@ -26,6 +28,7 @@ const VAULT_DEPOSIT: u128 = 100_000_000_000_000_000_000_000; // 0.1 NEAR
 /// What a NEP-141 contract charges to register one account.
 const TOKEN_STORAGE: u128 = 1_250_000_000_000_000_000_000; // 0.00125 NEAR
 const ONE_YOCTO: u128 = 1;
+const MAX_DEPUTIES: usize = 5;
 
 const ACT_REPORT: u8 = 0;
 const ACT_YES: u8 = 1;
@@ -50,6 +53,8 @@ pub struct Params {
     pub tier0_cap: U128,
     /// Same for a mechanic with a little track record (score 1 or 2).
     pub tier1_cap: U128,
+    /// Largest quote one deputy (council member) may approve alone. Above it only the steward may approve.
+    pub mid_cap: U128,
     /// Percent paid at approval; the rest is held.
     pub first_pct: u8,
     /// Distinct households that must report "broken again" during the hold to forfeit it.
@@ -101,6 +106,8 @@ pub struct Job {
     pub paid: U128,
     pub held: U128,
     pub rebroken: Vec<u32>,
+    /// True when a waiting quote is above `mid_cap`, so only the steward (not a deputy) may approve it.
+    pub above_mid: bool,
 }
 
 #[near(serializers=[borsh, json])]
@@ -122,6 +129,8 @@ pub struct Pump {
     pub vault: AccountId,
     /// Holder of the pump NFT: approves big quotes, sets the quote cap, can hand the pump on.
     pub steward: AccountId,
+    /// Council members who may approve a quote up to `mid_cap` alone (set by the steward).
+    pub deputies: Vec<AccountId>,
     /// Highest quote this pump accepts (set by the steward, at most the global max).
     pub quote_cap: U128,
     pub paid_total: U128,
@@ -166,7 +175,7 @@ pub struct Credential {
 pub enum Action {
     AddMechanic { account: AccountId },
     RemoveMechanic { account: AccountId },
-    AddPump { name: String, steward: AccountId },
+    AddPump { name: String, steward: AccountId, deputies: Vec<AccountId> },
     DeactivateHousehold { hh: u32 },
     AddBatch { root: Base64VecU8, count: u32 },
     CancelJob { job: u64 },
@@ -210,8 +219,9 @@ impl Contract {
         require!(
             params.tier0_cap.0 > 0
                 && params.tier0_cap.0 <= params.tier1_cap.0
-                && params.tier1_cap.0 <= params.max_price.0,
-            "tier caps must satisfy 0 < tier0 <= tier1 <= max_price"
+                && params.tier1_cap.0 <= params.mid_cap.0
+                && params.mid_cap.0 <= params.max_price.0,
+            "tier caps must satisfy 0 < tier0 <= tier1 <= mid_cap <= max_price"
         );
         Self {
             signers,
@@ -504,8 +514,9 @@ impl Contract {
                     self.mechanics.insert(account, r);
                 }
             }
-            Action::AddPump { name, steward } => {
+            Action::AddPump { name, steward, deputies } => {
                 require!(!name.is_empty() && name.len() <= 64, "bad pump name");
+                require!(deputies.len() <= MAX_DEPUTIES, "too many deputies");
                 let id = self.pump_count;
                 let me = env::current_account_id();
                 let vault: AccountId = format!("pump-{id}.{me}")
@@ -541,6 +552,7 @@ impl Contract {
                         earmark: U128(0),
                         vault,
                         steward: steward.clone(),
+                        deputies,
                         quote_cap: self.params.max_price,
                         paid_total: U128(0),
                         jobs_paid: 0,
@@ -698,6 +710,7 @@ impl Contract {
             paid: U128(0),
             held: U128(0),
             rebroken: vec![],
+            above_mid: false,
         };
         p.open_job = Some(id);
         self.pumps.insert(pump, p);
@@ -725,34 +738,48 @@ impl Contract {
             let mut j = j;
             j.mechanic = Some(who.clone());
             j.price = price;
+            j.above_mid = price.0 > self.params.mid_cap.0;
             j.status = Status::Quoted;
             self.log("quote", Some(job), Some(j.pump), price.0, who.as_str());
             self.jobs.insert(job, j);
         }
     }
 
-    /// The pump's steward (the NFT holder) accepts a quote that was above the mechanic's tier.
+    /// Who may decide on a waiting quote: the steward always; a deputy only if the quote is up to `mid_cap`.
+    fn may_decide(&self, p: &Pump, j: &Job, who: &AccountId) -> bool {
+        *who == p.steward || (!j.above_mid && p.deputies.contains(who))
+    }
+
+    /// Approves a quote that was above the mechanic's tier. The steward (NFT holder) may always; a deputy
+    /// (council member) may when the quote is up to `mid_cap`.
     pub fn steward_approve(&mut self, job: u64) {
         let j = self.job_get(job);
         require!(j.status == Status::Quoted, "no quote is waiting on this job");
         let p = self.pump_get(j.pump);
-        require!(env::predecessor_account_id() == p.steward, "only this pump's steward can approve a quote");
-        let who = j.mechanic.clone().unwrap();
+        let who = env::predecessor_account_id();
+        require!(
+            self.may_decide(&p, &j, &who),
+            "this quote needs the pump's steward (above the deputy limit) or a deputy (up to it)"
+        );
+        let mech = j.mechanic.clone().unwrap();
         let price = j.price.0;
-        self.log("steward_ok", Some(job), Some(j.pump), price, p.steward.as_str());
-        self.take_job(j, who, price);
+        self.log("steward_ok", Some(job), Some(j.pump), price, who.as_str());
+        self.take_job(j, mech, price);
     }
 
-    /// The steward turns the quote down; the job goes back to open.
+    /// Turns a waiting quote down; the job goes back to open. Same authority as approving it.
     pub fn steward_reject(&mut self, job: u64) {
         let mut j = self.job_get(job);
         require!(j.status == Status::Quoted, "no quote is waiting on this job");
         let p = self.pump_get(j.pump);
-        require!(env::predecessor_account_id() == p.steward, "only this pump's steward can turn a quote down");
+        require!(
+            self.may_decide(&p, &j, &env::predecessor_account_id()),
+            "this quote needs the pump's steward (above the deputy limit) or a deputy (up to it)"
+        );
         j.status = Status::Reported;
         j.mechanic = None;
         j.price = U128(0);
-        self.log("quote_rejected", Some(job), Some(j.pump), 0, p.steward.as_str());
+        self.log("quote_rejected", Some(job), Some(j.pump), 0, env::predecessor_account_id().as_str());
         self.jobs.insert(job, j);
     }
 
@@ -777,6 +804,20 @@ impl Contract {
         let who = p.steward.clone();
         self.pumps.insert(pump, p);
         self.log("set_cap", None, Some(pump), cap.0, who.as_str());
+    }
+
+    /// The steward adds or removes a deputy (a council member who may approve mid-size quotes alone).
+    pub fn set_deputy(&mut self, pump: u32, account: AccountId, on: bool) {
+        let mut p = self.pump_get(pump);
+        require!(env::predecessor_account_id() == p.steward, "only this pump's steward can change its deputies");
+        p.deputies.retain(|d| *d != account);
+        if on {
+            require!(p.deputies.len() < MAX_DEPUTIES, "too many deputies");
+            p.deputies.push(account.clone());
+        }
+        let who = p.steward.clone();
+        self.pumps.insert(pump, p);
+        self.log(if on { "deputy_added" } else { "deputy_removed" }, None, Some(pump), 0, &format!("{who} -> {account}"));
     }
 
     /// The mechanic says the repair is done. This draws the random sample of households.

@@ -2,7 +2,7 @@
 
 A public repair fund for community water points, on NEAR testnet. Every water point is an NFT **and** its own keyless account that holds its repair money in USDC. A village committee (a Sputnik DAO) holds the NFTs. A mechanic is paid only after the village confirms the pump works.
 
-**In 30 seconds.** A donor pays for a borehole, then it breaks because nobody has money to fix it. WellKeep keeps a repair fund for each water point, and nobody holds a key to it. A household reports a pump broken with a one-time code from a printed card. A registered mechanic quotes a price in USDC. A small quote from a trusted mechanic goes straight through; a bigger one waits for the pump's steward, which is the holder of the pump's NFT (for Village A, the village committee DAO votes). After the fix, the reporter plus about eight random households are asked "does it work now?". If two thirds say yes, the mechanic is paid 70% at once from the pump's own account and 30% an hour later, unless two different households report the pump broken again. Every report, vote and payment is public. A donor can run one check that proves, from the chain alone, that no key exists for the fund or for any pump's account, and that their code cannot change.
+**In 30 seconds.** A donor pays for a borehole, then it breaks because nobody has money to fix it. WellKeep keeps a repair fund for each water point, and nobody holds a key to it. A household reports a pump broken with a one-time code from a printed card. A registered mechanic quotes a price in USDC. A small quote from a trusted mechanic goes straight through; a mid-size one is approved by one council member of that pump; a large one needs the pump's steward, which is the holder of the pump's NFT (for Village A, the village committee DAO votes). After the fix, the reporter plus about eight random households are asked "does it work now?". If two thirds say yes, the mechanic is paid 70% at once from the pump's own account and 30% an hour later, unless two different households report the pump broken again. Every report, vote and payment is public. A donor can run one check that proves, from the chain alone, that no key exists for the fund or for any pump's account, and that their code cannot change.
 
 Built on NEAR for NEAR HACKATHON. Tracks: **NFTs That Do Something**, **Real-World Money**, **Social Money**. This is a prototype on testnet with test money (Circle's testnet USDC). It has not been tested with any real community. A second entry from the same author, [Cautio](https://github.com/ibnweb3/cautio) (rental deposits in a keyless NEAR account, [live](https://cautio.ibnweb3lab.workers.dev)), uses the same idea of an account that nobody holds a key to.
 
@@ -21,12 +21,13 @@ Each claim below names what is built and where to see it. What is not built is l
 
 **Real-World Money: a repair is a paid job with an invoice, in a stablecoin.**
 - The money is Circle's testnet USDC (`3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af`, NEP-141). Donors send it with `ft_transfer_call` (`pump:N` or `pool`); mechanics are paid in USDC straight from the pump's account.
-- Each job has an invoice page (payer account, payee, quote, the 70% and 30% lines with status and time) and a CSV export for a bookkeeper, per job and for the whole ledger (page **Ledger and invoices**).
+- Each job has an invoice page (payer account, payee, quote, the 70% and 30% lines with status, time and a link to the payment's transaction) and a CSV export for a bookkeeper, per job and for the whole ledger (page **Ledger and invoices**). The transaction links come from the NEAR explorer's token-transfer index; if it is unreachable the cell links to the pump account's transfers instead.
 - Gasless for villagers and for the sandbox: a relayer pays the fee. Real mechanics and stewards sign with their own wallet and need a little testnet NEAR (a full meta-transaction relay for them is not built).
 
 **Social Money: a shared budget, a committee, and reputation tied to finished work.**
 - The village committee is a real **Sputnik DAO** (`wellkeep-village.sputnikv2.testnet`, three council accounts, 2 of 3 to pass). It holds the NFTs of the Village A pumps, so approving a big quote is an ordinary DAO proposal. No new multisig was written for this.
-- Reputation: a mechanic's score is their finished repairs minus two for each forfeited held share; every point traces to a job in the ledger. Score sets how large a quote they may take without the steward: 1 USDC at score 0, 2 USDC at score 1 or 2, 4 USDC at score 3 or more. Small quotes from trusted mechanics need no approval; larger ones need the steward (for Village A, a DAO proposal that the council votes on).
+- Reputation: a mechanic's score is their finished repairs minus two for each forfeited held share; every point traces to a job in the ledger. Score sets the largest quote they may take with no approval: 1 USDC at score 0, 2 USDC at score 1 or 2, 4 USDC at score 3 or more.
+- **Three approval tiers.** (1) Small, within the mechanic's limit: taken at once. (2) Mid-size, up to 3 USDC: one **deputy** (a council member the steward has named for that pump) or the steward approves alone. (3) Large, up to 4 USDC: only the steward approves, which for the Village A pumps is a proposal the whole DAO council votes on. The three DAO council accounts are the deputies of the Village A pumps. Unit tests cover each tier, including a deputy being refused above the limit.
 - A public board of repairs, claims, payouts and mechanic records: **Ledger and invoices** and **Community** (mechanic records and the committee's proposals).
 
 ## Try it (about five minutes)
@@ -34,8 +35,8 @@ Each claim below names what is built and where to see it. What is not built is l
 Do each step on the live site and check the result named after it.
 
 1. **Check before you give:** open **Overview**, press **Run the checks** - see eight PASS lines: the pool account exists, has 0 access keys, its code is referenced by hash and equals this repository's wasm, its address recomputes in your browser, its rules match the committed starting state, and every one of the 6 pump accounts has no keys and runs exactly the vault code in this repository.
-2. **Play every role, no wallet:** open **Try it**, pick a "(sandbox steward)" water point, press **Report this pump broken** - see a transaction link. Then **Send the quote**: choose 0.50 or 1.00 USDC (accepted at once) or 3.00 USDC (waits: press **Approve as the steward**). Then **Post the fix**, **Make the village say it works** - see "paid" with 70% sent from the pump's own account and 30% held for an hour.
-3. **See a real DAO-approved repair:** open **Ledger and invoices**, then invoice `WK-0001` - see a 3.00 USDC job on the Village A market square: quoted above the mechanic's limit, approved by a DAO proposal (open **Community** to see proposal 0 with 2 yes votes), paid 2.10 USDC from `pump-0.<pool>`, with 0.90 held. `evidence/live-run-v2.json` has the transaction hashes of the report, quote, fix and votes; the DAO proposal itself is listed on **Community**.
+2. **Play every role, no wallet:** open **Try it**, pick a "(sandbox steward)" water point, press **Report this pump broken** - see a transaction link. Then **Send the quote**: choose 0.50 or 1.00 USDC (accepted at once), or 2.50 or 4.00 USDC (it waits: press **Approve as the steward**). Then **Post the fix**, **Make the village say it works** - see "paid" with 70% sent from the pump's own account and 30% held for an hour.
+3. **See the tiers on real jobs:** open **Ledger and invoices**. Invoice `WK-0001` is a 2.50 USDC mid-size quote on the Village A primary school, approved by **one council member alone** (`bh-council-1`), paid 1.75 USDC from that pump's own account with 0.75 held. Invoice `WK-0002` is a 4.00 USDC large quote on the market square: the same council member was refused, then DAO proposal 1 passed with 2 of 3 votes (open **Community**), and 2.80 USDC was paid with 1.20 held. Each payment line links to its transaction. `evidence/live-run-v3.json` has the hashes of the report, quote, approval, fix and votes.
 4. **See the NFT and its account:** open **Overview**, then "Village A - market square" - see `pump-0` with its owner (the DAO), its own account and its live USDC balance read from the USDC contract.
 5. **Download the books:** on **Ledger and invoices** press **Invoices as CSV** - get one row per job.
 
@@ -52,12 +53,12 @@ Real roles with real wallets (not needed for judging): connect a NEAR testnet wa
 
 On NEAR testnet, real:
 
-- A **keyless pool account**: `0sedce5ef2a8c3f587df86bd10a8a631fb9f7eaa19`, no access keys. Its code is a global contract referenced **by hash** (`5rqAFCQTLhWNzYJskq1H5tE4RifUmyTDx1pX4FTtZGhs`, 292,449 bytes), so nobody can swap it.
+- A **keyless pool account**: `0se442fd5f33732a4fc919dbdc4b24589990ac9e5d`, no access keys. Its code is a global contract referenced **by hash** (`AWgU7hAEP1bh3DwGcEf3cMaKrjMt3EDy439rgA9y6znF`, 298,228 bytes), so nobody can swap it. (An earlier pool from this same hackathon build, without the deputy tier, is superseded; its files are in `evidence/v2/`.)
 - **Six keyless pump accounts** `pump-0` to `pump-5` under the pool, each running the same 3,938-byte vault (`3Pcz3nieBrewZPiwqBuepTU6x2aHGvUc2WziCxGJZB2D`), each with 0 access keys.
-- The repair rule: reports, quotes, steward approval, one-time-code voting, the random sample, the 70/30 payment and the forfeit rule (`contract/src/lib.rs`).
+- The repair rule: reports, quotes, three approval tiers, one-time-code voting, the random sample, the 70/30 payment and the forfeit rule (`contract/src/lib.rs`).
 - The USDC held by each pump is in that pump's own account on the USDC contract, not a number inside the pool.
 - Admin actions (register a mechanic, add a pump, cancel a disputed job) need both signer accounts to approve the same action.
-- A village committee Sputnik DAO and a DAO proposal that was voted on and executed `steward_approve` on the pool.
+- A village committee Sputnik DAO and a DAO proposal that was voted on and executed `steward_approve` on the pool, plus a mid-size quote approved by one council member alone.
 
 Not real, and labelled as such on the site:
 
@@ -78,7 +79,8 @@ Not real, and labelled as such on the site:
 donor ──ft_transfer_call(USDC, "pump:N")──▶ pool ──▶ pump-N.<pool>  (keyless account, holds the USDC)
 household card ─(one-time code)─▶ report_broken ─▶ job opens
 mechanic ──accept_job(quote)──▶ within their limit: money reserved
-                              └─▶ above it: waits for the pump's steward (NFT holder; DAO vote for Village A)
+                              ├─▶ up to 3 USDC: one deputy (council member) or the steward approves
+                              └─▶ up to 4 USDC: only the steward (NFT holder; a DAO vote for Village A)
 mechanic ──post_fix──▶ contract draws a random sample
 asked households ──vote(code)──▶ ≥5 replies and ≥2/3 "works" ─▶ pump-N pays 70% to the mechanic, 30% held
 hold ends, no forfeit ─▶ release_held (anyone) ─▶ pump-N pays the 30%
@@ -95,14 +97,14 @@ hold ends, no forfeit ─▶ release_held (anyone) ─▶ pump-N pays the 30%
 | NEAR feature | What it does here | Where |
 | --- | --- | --- |
 | NEAR testnet | Holds the fund, jobs, votes and the public ledger | `wrangler.toml` (`POOL_ID`), `evidence/publish.json` |
-| Global contract, referenced by hash | The pool's code lives once on-chain under hash `5rqAFCQTLhWNzYJskq1H5tE4RifUmyTDx1pX4FTtZGhs`; the pool points at the hash, so nobody can swap it | `tools/publish.mjs`, `web/src/verify-core.js` (checks 3 to 5) |
+| Global contract, referenced by hash | The pool's code lives once on-chain under hash `AWgU7hAEP1bh3DwGcEf3cMaKrjMt3EDy439rgA9y6znF`; the pool points at the hash, so nobody can swap it | `tools/publish.mjs`, `web/src/verify-core.js` (checks 3 to 5) |
 | Deterministic `0s` account | The pool address is derived from its code and starting state and has no access keys | `tools/publish.mjs create`, `evidence/state-init.json`, `web/src/verify-core.js` |
 | Sub-accounts | Each water point gets a keyless account `pump-N.<pool>` created by the pool, running embedded vault code | `contract/src/lib.rs` (`Action::AddPump`), `vault/src/lib.rs` |
 | NEP-171 NFTs | `pump-N` transfers and carries stewardship; `hh-N` are non-transferable credentials. `nft_token`, `nft_tokens_for_owner`, `nft_supply_for_owner`, `nft_transfer`, mint and transfer events | `contract/src/lib.rs` (NFT section) |
 | NEP-141 (Circle testnet USDC) | The money: `ft_transfer_call` in, `ft_transfer` out of each vault, registration with `storage_deposit` | `contract/src/lib.rs` (`ft_on_transfer`, `pay_out`), `vault/src/lib.rs` |
 | Sputnik DAO | The village committee; holds the Village A pump NFTs and votes on big quotes | `tools/dao.mjs`, `web/public/app.js` (Community page) |
 | NEAR on-chain random seed | `env::random_seed()` draws the households asked to vote | `contract/src/lib.rs` (`draw_sample`) |
-| near-sdk (Rust) | The pool contract (38 unit tests in `contract/src/tests.rs`) | `contract/` |
+| near-sdk (Rust) | The pool contract (47 unit tests in `contract/src/tests.rs`) | `contract/` |
 | near-sys (no SDK) | The 3.9 KB vault written against the host functions directly | `vault/` |
 | near-kit | The Worker's relayer pays gas and signs calls; the tools sign testnet calls | `web/src/worker.js`, `tools/` |
 | NEAR wallet (`@hot-labs/near-connect`) | Donors, mechanics and stewards sign with their own accounts | `web/src/wallet.js` |
@@ -114,7 +116,7 @@ hold ends, no forfeit ─▶ release_held (anyone) ─▶ pump-N pays the 30%
 - **The address proves the rules.** A NEAR deterministic account's address is derived from its code and starting state, and it has no keys. The page recomputes that address in the browser and checks over RPC that there are no access keys, that the code is referenced by hash, that the stored code is byte-identical to `evidence/wellkeep_pool.wasm`, and that every pump account has no keys and runs the exact vault code.
 - **The token is the account.** A water point's NFT and the account that holds its money are the same thing on NEAR: a sub-account that the contract creates with no key. Ownership of the NFT is control of the pump; the money does not move on transfer.
 - **A committee that is an ordinary DAO.** The pump NFT can be held by a Sputnik DAO, so approvals are DAO proposals with no new multisig code.
-- **Measured costs on testnet.** Publishing the 292,449-byte pool code by hash burned 29.27 NEAR once; creating the keyless pool from it cost about 0.01 NEAR; each pump account needs about 0.1 NEAR for its storage.
+- **Measured costs on testnet.** Publishing the 298,228-byte pool code by hash burned 29.84 NEAR once; creating the keyless pool from it cost about 0.01 NEAR; each pump account needs about 0.1 NEAR for its storage.
 - **What would work on any chain:** the repair rule itself (reports, quotes, sample vote, two-stage payment). An EVM version with a factory, per-pump contracts and a paymaster could do much of it. We do not claim only NEAR can do this. What NEAR adds is narrower: addresses that prove their own code, tokens that are the accounts holding the money, and a committee that is an off-the-shelf DAO.
 
 ## Prior art, and what is different
@@ -131,7 +133,7 @@ What is different: the fund is public and keyless, so a donor can see and check 
 - **Votes are linkable to a card.** Anyone who knows which card is whose can see how it voted.
 - **A held share can be denied by two dishonest households.** Two reports forfeit it. The mechanic has no appeal in this version.
 - **No phone coverage means no votes.** The design leans on SMS and printed cards; this is untested.
-- **A committee can be captured.** The DAO is as honest as its council. Quotes within a trusted mechanic's limit need no approval at all.
+- **A committee can be captured.** The DAO is as honest as its council, and one deputy can approve a mid-size quote alone. Quotes within a trusted mechanic's limit need no approval at all.
 - **Real money.** Nigeria and Kenya tightened stablecoin rules in November 2026, and I found no evidence of rural mechanics using stablecoins. A real deployment needs a licensed off-ramp partner.
 - **Donor demand is unproven.** I found no evidence that small donors would fund maintenance over new wells.
 - **"Five-mile walk" is an illustration.** The headline is rhetoric; I have no source for a typical distance. The "about one in four handpumps out of order" line is from Foster and others (2018), whose abstract says approximately one in four handpumps in sub-Saharan Africa are non-functional at any point in time; the paper warns that definitions of "functional" differ.
@@ -140,11 +142,11 @@ What is different: the fund is public and keyless, so a donor can see and check 
 ## Evidence
 
 - `evidence/verification.json` - the eight checks, run against the live pool.
-- `evidence/live-run-v2.json` - a live repair on the real pool with real Circle USDC: a 3 USDC quote above the mechanic's limit, approved by DAO proposal 0 (2 yes votes), five household votes, 2.10 USDC paid from `pump-0` with 0.90 held, with the transaction hashes of the report, quote, fix and votes.
+- `evidence/live-run-v3.json` - two live repairs on the real pool with real Circle USDC: a 2.5 USDC quote approved by one council member alone, and a 4 USDC quote where the council member was refused and DAO proposal 1 (2 of 3 votes) approved it; five household votes each; 1.75 and 2.80 USDC paid from the pumps' own accounts, with the transaction hashes of the report, quote, approval, fix and votes.
 - `evidence/publish.json` - code hash, publisher, pool address. `evidence/wellkeep_pool.wasm`, `evidence/wellkeep_vault.wasm` and `evidence/state-init.json` - the exact code and starting state the addresses commit to.
-- `tools/scratch-v2.mjs` - the same flow on a throwaway pool, run with a mock NEP-141 token before publishing: donation routing, the big-quote gate, an NFT transfer in the middle of a job (the old holder is refused), the 70/30 payout from the vault, and the reputation update.
-- `contract/` - 38 unit tests (`cargo test`); `tests/` - JS tests for the card codes and the verifier, including a negative control (the same code deployed the ordinary way, with a key and no hash reference, fails the checks).
-- `evidence/borehole_pool.wasm`, `evidence/live-run.json` - the first version of this build (non-transferable records, NEAR instead of USDC), kept as history.
+- `tools/scratch-v2.mjs` - the same flow on a throwaway pool, run with a mock NEP-141 token before publishing: donation routing, the big-quote gate, an NFT transfer in the middle of a job (the old holder is refused), the 70/30 payout from the vault, the reputation update, and a deputy refused on a quote above the council-member limit.
+- `contract/` - 47 unit tests (`cargo test`); `tests/` - JS tests for the card codes and the verifier, including a negative control (the same code deployed the ordinary way, with a key and no hash reference, fails the checks).
+- `evidence/v2/` - the previous pool of this build (no deputy tier) with its live run, kept as history. `evidence/borehole_pool.wasm`, `evidence/live-run.json` - the first version (non-transferable records, NEAR instead of USDC).
 
 ## Run it yourself
 

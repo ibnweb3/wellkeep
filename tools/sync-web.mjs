@@ -35,6 +35,7 @@ writeFileSync(
       codeHash: pub.codeHash,
       rpcUrl: "https://test.rpc.fastnear.com",
       explorer: "https://testnet.nearblocks.io",
+      explorerApi: "https://api-testnet.nearblocks.io", // token-transfer index used for the invoice transaction links
       token: "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af", // Circle testnet USDC (6 decimals)
       dao: "wellkeep-village.sputnikv2.testnet", // the village committee (Sputnik DAO)
       sandboxSteward: "bh-relay.testnet", // steward of the sandbox pumps; also the sandbox mechanic

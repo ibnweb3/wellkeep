@@ -16,7 +16,7 @@ The donor (or diaspora giver) who funded a pump and does not want it to fail for
 1. A donor sends USDC (`ft_transfer_call`) to one pump's account or to the shared pool.
 2. The pool and every pump account have no access keys. Money leaves a pump's account only when the pool tells its vault to pay, and the pool does that only through the repair rule.
 3. Any household can report "pump broken" using a one-time code from its card. That opens a job.
-4. A registered mechanic quotes a price. A quote within the mechanic's track-record limit reserves the money at once. A larger quote waits for the pump's steward, the holder of the pump's NFT. For the Village A pumps the steward is the village committee DAO, so approval is a DAO proposal.
+4. A registered mechanic quotes a price. A quote within the mechanic's track-record limit reserves the money at once. A mid-size quote (up to 3 USDC) is approved by one deputy, a council member of that pump, or the steward. A large quote (up to 4 USDC) waits for the pump's steward, the holder of the pump's NFT. For the Village A pumps the steward is the village committee DAO, so that approval is a DAO proposal.
 5. The mechanic posts the fix. The reporting households, plus eight random households, say whether the pump works. At least five replies and two thirds yes are needed.
 6. On approval 70% is paid from the pump's own account. The other 30% is held (one hour on this testnet build) and released unless two different households report the pump broken again.
 7. Everything is public: balances (read from the USDC contract), jobs, votes, payments, invoices, mechanic records, DAO proposals.
@@ -38,12 +38,12 @@ Source: the research report the owner commissioned (not independently re-checked
 2. **Vault contract (no SDK, 3.9 KB)**, embedded in the pool. The pool creates one keyless sub-account `pump-N.<pool>` per water point from it. It can pay only when its parent pool calls it.
 3. **NEP-171 NFTs.** `pump-N` transfers and carries stewardship (approve big quotes, set the pump's quote cap); `hh-N` household passes are credentials and do not transfer. Holder history and per-pump totals are on-chain.
 4. **NEP-141 money.** Circle's testnet USDC. Donations by `ft_transfer_call`; payouts by the vault's `ft_transfer`; the pool registers mechanics and vaults at the token.
-5. **Reputation tiers.** A mechanic's score (finished jobs minus two per forfeited share) sets an automatic quote limit: 1, 2 or 4 USDC.
-6. **Village committee.** A Sputnik DAO (`wellkeep-village.sputnikv2.testnet`, 3 council accounts, 2 of 3) holds the Village A pump NFTs. Village B pumps are held by the sandbox account so a visitor can play the steward.
+5. **Reputation and three approval tiers.** A mechanic's score (finished jobs minus two per forfeited share) sets an automatic quote limit: 1, 2 or 4 USDC. Above it, a quote up to 3 USDC needs one deputy (council member) or the steward; a quote up to 4 USDC needs the steward (a DAO vote for Village A).
+6. **Village committee.** A Sputnik DAO (`wellkeep-village.sputnikv2.testnet`, 3 council accounts, 2 of 3) holds the Village A pump NFTs; its three council accounts are the pumps' deputies. Village B pumps are held by the sandbox account so a visitor can play the steward.
 7. **"Check before you give" verifier.** Recomputes the pool's address from its code and starting state, and checks by RPC: zero keys, code by hash, code identical to the repository wasm, rules match, and every pump account has zero keys and runs the exact vault code.
 8. **Gasless villagers.** A relayer pays the gas for reports and votes; the one-time code is the credential, checked on-chain.
 9. **Web app (Cloudflare Worker static assets).** Water points, pump pages with steward desk, invoices and CSV, public ledger, community (mechanic records and DAO proposals), a sandbox to play every role, the verifier.
-10. **Tests, README, evidence.** 38 contract tests, JS tests, a live run on real USDC, a scratch run with a mock token.
+10. **Tests, README, evidence.** 47 contract tests, JS tests, a live run of the three tiers on real USDC, a scratch run with a mock token. Invoice payment lines link to their transactions through the explorer's token-transfer index.
 
 ## OUT (not built, and said so)
 
@@ -81,7 +81,7 @@ What would work on any chain: the repair rule itself (reports, quotes, sample vo
 - Pumps were records inside one pool (a ledger line), not accounts; the NFTs were read-only and non-transferable. Now each pump is a real keyless account and its NFT transfers.
 - The money was testnet NEAR; now it is USDC, with invoices and a CSV.
 - Mechanics were an allow-list; now they have a public record and a trust-based quote limit, and larger quotes need the steward or a DAO vote.
-- The first version's pool (`0s4123b90f113c99ea1492d8ef8e658f0890153193`) and wasm (`evidence/borehole_pool.wasm`) are kept as history only.
+- The first version's pool (`0s4123b90f113c99ea1492d8ef8e658f0890153193`) and wasm (`evidence/borehole_pool.wasm`) are kept as history only. A second pool without the deputy tier (`0sedce5ef2a8c3f587df86bd10a8a631fb9f7eaa19`) is superseded; its files are in `evidence/v2/`.
 
 ## Owner actions (not done by me)
 

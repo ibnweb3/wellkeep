@@ -20,18 +20,21 @@ if (existing && existing.pump_count > 0) throw new Error(`pool already has ${exi
 console.log("pool", pool);
 await nearFor(deployer).send(pool, "7 NEAR"); // gas reserve, the pumps' accounts and the mechanics' registrations
 await call(nearFor(deployer), USDC, "storage_deposit", { account_id: pool, registration_only: true }, "0.00125 NEAR");
+const COUNCIL = ["bh-council-1.testnet", "bh-council-2.testnet", "bh-council-3.testnet"];
 const pumps = [
-  ["Village A - market square", DAO],
-  ["Village A - primary school", DAO],
-  ["Village A - health post", DAO],
-  ["Village B - clinic", SANDBOX],
-  ["Village B - market", SANDBOX],
-  ["Village B - school", SANDBOX],
+  // Village A: the committee DAO is the steward; each council member is a deputy who can approve a mid-size quote alone
+  ["Village A - market square", DAO, COUNCIL],
+  ["Village A - primary school", DAO, COUNCIL],
+  ["Village A - health post", DAO, COUNCIL],
+  // Village B: the sandbox account is the steward, so a visitor can play it; no deputies
+  ["Village B - clinic", SANDBOX, []],
+  ["Village B - market", SANDBOX, []],
+  ["Village B - school", SANDBOX, []],
 ];
 const actions = [
   { AddMechanic: { account: "bh-mechanic.testnet" } },
   { AddMechanic: { account: SANDBOX } },
-  ...pumps.map(([name, steward]) => ({ AddPump: { name, steward } })),
+  ...pumps.map(([name, steward, deputies]) => ({ AddPump: { name, steward, deputies } })),
 ];
 for (const action of actions) {
   const first = await call(nearFor(A), pool, "approve_action", { action });

@@ -2,7 +2,7 @@
 //! (base64 key -> base64 value), using the contract's own Borsh layout, so the keyless account's
 //! address is derived from exactly the bytes the contract would have written itself.
 //!
-//! cargo run --release --features state-tool --example state -- <signerA> <signerB> <root_hex> <households> <hold_s> <window_s> <min_replies> <sample> <max_price> <tier0_cap> <tier1_cap> <first_pct> <rebroken> <attempts> <token>
+//! cargo run --release --features state-tool --example state -- <signerA> <signerB> <root_hex> <households> <hold_s> <window_s> <min_replies> <sample> <max_price> <tier0_cap> <tier1_cap> <mid_cap> <first_pct> <rebroken> <attempts> <token>
 use borehole_pool::{Contract, Params};
 use near_sdk::json_types::{U128, U64};
 use near_sdk::borsh;
@@ -26,9 +26,9 @@ fn unhex(s: &str) -> Vec<u8> {
 
 fn main() {
     let a: Vec<String> = std::env::args().skip(1).collect();
-    assert_eq!(a.len(), 15, "see the usage line at the top of this file");
+    assert_eq!(a.len(), 16, "see the usage line at the top of this file");
     let params = Params {
-        token: a[14].parse().unwrap(),
+        token: a[15].parse().unwrap(),
         hold_ns: U64(a[4].parse::<u64>().unwrap() * 1_000_000_000),
         vote_window_ns: U64(a[5].parse::<u64>().unwrap() * 1_000_000_000),
         min_replies: a[6].parse().unwrap(),
@@ -36,9 +36,10 @@ fn main() {
         max_price: U128(a[8].parse().unwrap()),
         tier0_cap: U128(a[9].parse().unwrap()),
         tier1_cap: U128(a[10].parse().unwrap()),
-        first_pct: a[11].parse().unwrap(),
-        rebroken_needed: a[12].parse().unwrap(),
-        max_attempts: a[13].parse().unwrap(),
+        mid_cap: U128(a[11].parse().unwrap()),
+        first_pct: a[12].parse().unwrap(),
+        rebroken_needed: a[13].parse().unwrap(),
+        max_attempts: a[14].parse().unwrap(),
     };
     let c = Contract::build(
         [a[0].parse().unwrap(), a[1].parse().unwrap()],

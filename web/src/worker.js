@@ -15,7 +15,7 @@ import { Near } from "near-kit";
 
 const RELAY_METHODS = new Set(["report_broken", "vote", "redraw_sample", "release_held"]);
 const SANDBOX_METHODS = new Set(["accept_job", "post_fix", "steward_approve", "steward_reject"]);
-const SANDBOX_MAX_PRICE = 3000000n; // 3 USDC (6 decimals): keeps the test fund from being drained by one click
+const SANDBOX_MAX_PRICE = 4000000n; // 4 USDC (6 decimals): keeps the test fund from being drained by one click
 const GAS = "150 Tgas";
 
 const json = (body, status = 200) =>
@@ -72,7 +72,7 @@ async function handle(req, env) {
       if (body.method !== "accept_job") return json(await send(client(env), pool, body.method, { job }));
       let price;
       try { price = BigInt(body.args?.price); } catch { return json({ ok: false, error: "price must be a whole number of USDC base units" }, 400); }
-      if (price <= 0n || price > SANDBOX_MAX_PRICE) return json({ ok: false, error: "sandbox quotes are limited to 3 USDC" }, 400);
+      if (price <= 0n || price > SANDBOX_MAX_PRICE) return json({ ok: false, error: "sandbox quotes are limited to 4 USDC" }, 400);
       return json(await send(client(env), pool, "accept_job", { job, price: price.toString() }));
     }
     return json({ ok: false, error: "not found" }, 404);

@@ -41,7 +41,7 @@ console.log("create + deploy", pool);
 await dep.transaction(deployer).createAccount(pool).transfer(pool, "8 NEAR").addKey(key.publicKey.toString(), { type: "fullAccess" })
   .deployContract(pool, readFileSync("evidence/wellkeep_pool.wasm")).send();
 const me = new (await import("near-kit")).Near({ network: NETWORK, privateKey: key.secretKey, defaultSignerId: pool });
-const params = { token: USDC, hold_ns: String(20e9), vote_window_ns: String(30e9), min_replies: 5, sample_size: 8, max_price: U(4), tier0_cap: U(1), tier1_cap: U(2), first_pct: 70, rebroken_needed: 2, max_attempts: 2 };
+const params = { token: USDC, hold_ns: String(20e9), vote_window_ns: String(30e9), min_replies: 5, sample_size: 8, max_price: U(4), tier0_cap: U(1), tier1_cap: U(2), mid_cap: U(3), first_pct: 70, rebroken_needed: 2, max_attempts: 2 };
 await call(me, pool, "new", { signers: [A, B], params, root: Buffer.from(cards.root, "hex").toString("base64"), households: 30 });
 await sleep(6000);
 console.log("init ok", JSON.stringify(await viewer().view(pool, "get_config", {})).slice(0, 160));
@@ -54,7 +54,7 @@ const both = async (action) => {
   return call(near(B), pool, "approve_action", { action });
 };
 await both({ AddMechanic: { account: M } });
-await both({ AddPump: { name: "Scratch well", steward: STEWARD } });
+await both({ AddPump: { name: "Scratch well", steward: STEWARD, deputies: ["bh-council-1.testnet"] } });
 await sleep(7000);
 const p0 = await viewer().view(pool, "get_pump", { id: 0 });
 console.log("pump 0", JSON.stringify(p0).slice(0, 300));
@@ -109,5 +109,20 @@ console.log("mechanic record", JSON.stringify(await viewer().view(pool, "get_mec
 console.log("pump history", JSON.stringify(await viewer().view(pool, "get_pump", { id: 0 })).slice(0, 500));
 console.log("ledger", (await viewer().view(pool, "list_ledger", { from: 0, limit: 80 })).map((e) => e.kind).join(","));
 console.log("NFT", JSON.stringify(await viewer().view(pool, "nft_token", { token_id: "pump-0" })));
+// ---- three tiers: a deputy (council member) approves a mid quote alone but not a big one
+await call(relay, pool, "report_broken", { pump: 0, cred: cred(cards, 1, 0, ACTIONS.report) });
+await call(near(M), pool, "accept_job", { job: 1, price: U(3.5) }); // above mid_cap (3): only the steward may approve
+await sleep(7000);
+let j1 = await viewer().view(pool, "get_job", { id: 1 });
+console.log("big quote:", j1.status, "above_mid", j1.above_mid);
+try { await call(near("bh-council-1.testnet"), pool, "steward_approve", { job: 1 }); console.log("ERROR: deputy approved a big quote"); } catch (e) { console.log("deputy refused on a big quote:", (e.panic ?? e.message).slice(0, 110)); }
+await call(near(M), pool, "withdraw_quote", { job: 1 });
+await call(near(M), pool, "accept_job", { job: 1, price: U(3) }); // within mid_cap: one deputy is enough
+await sleep(7000);
+j1 = await viewer().view(pool, "get_job", { id: 1 });
+console.log("mid quote:", j1.status, "above_mid", j1.above_mid);
+await call(near("bh-council-1.testnet"), pool, "steward_approve", { job: 1 });
+await sleep(7000);
+console.log("after deputy approval:", (await viewer().view(pool, "get_job", { id: 1 })).status);
 await me.transaction(pool).deleteAccount({ beneficiary: deployer }).send();
 console.log("scratch deleted; deployer", String(await viewer().getBalance(deployer)));

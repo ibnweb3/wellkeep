@@ -444,7 +444,7 @@ function jobCard(j, full) {
   let extra = "";
   if (j.status === "Quoted") {
     const rec = mechRec(j.mechanic);
-    extra = `<p>The quote of <b class="num">${usd(j.price)}</b> USDC is above ${rec ? `this mechanic's automatic limit of <b class="num">${usd(rec.auto_cap)}</b> USDC` : "the automatic limit"}, so the pump's steward must approve it before any money is reserved.</p>`;
+    extra = `<p>The quote of <b class="num">${usd(j.price)}</b> USDC is above ${rec ? `this mechanic's automatic limit of <b class="num">${usd(rec.auto_cap)}</b> USDC` : "the automatic limit"}, so nobody's money is reserved until it is approved. ${j.above_mid ? `It is above the <b class="num">${usd(S.cfg.params.mid_cap)}</b> USDC council-member limit, so only the pump's steward (for Village A, a DAO vote) can approve it.` : `It is within the <b class="num">${usd(S.cfg.params.mid_cap)}</b> USDC council-member limit, so one council member (a deputy of the pump) or the steward can approve it.`}</p>`;
   }
   if (j.status === "Voting") {
     extra = `<p>Asked: ${asked.length} households. Replies ${replies} of ${needed} needed. Works: ${j.yes.length}, still broken: ${j.no.length}.</p>
@@ -511,6 +511,7 @@ function pumpPage(id) {
   const p = S.cfg.params;
   const maxPrice = usd(pm.quote_cap);
   const isSteward = walletAcct && walletAcct === pm.steward;
+  const isDeputy = walletAcct && pm.deputies.includes(walletAcct);
   const mine = walletAcct ? mechRec(walletAcct) : null;
 
   const mechNote = walletAcct
@@ -531,9 +532,10 @@ function pumpPage(id) {
       <label>Quote (USDC)<input id="quote" type="number" autocomplete="off" spellcheck="false" min="0.1" max="${maxPrice}" step="0.1" value="1" inputmode="decimal"></label>
       <p><button id="act-accept">Send the quote</button></p>`;
   } else if (j.status === "Quoted") {
-    action = `<h3>A quote waits for the steward</h3>
-      <p class="muted">${esc(j.mechanic)} quoted <b class="num">${usd(j.price)}</b> USDC. That is above the mechanic's automatic limit, so the steward of this pump decides. ${isDao(pm.steward) ? "The steward is the village committee DAO: approving is a proposal its council votes on (see Community)." : ""}</p>
-      ${isSteward ? `<div class="row"><button id="act-sapprove">Approve the quote</button><button id="act-sreject" class="secondary">Turn it down</button></div>` : `<p class="muted">Only the holder of NFT pump-${pm.id} can approve it.</p>`}
+    const canDecide = isSteward || (isDeputy && !j.above_mid);
+    action = `<h3>A quote waits for approval</h3>
+      <p class="muted">${esc(j.mechanic)} quoted <b class="num">${usd(j.price)}</b> USDC, above the mechanic's automatic limit. ${j.above_mid ? `It is above the <b class="num">${usd(p.mid_cap)}</b> USDC council-member limit, so only the steward can approve it. ${isDao(pm.steward) ? "The steward is the village committee DAO: that is a proposal its council votes on (see Community)." : ""}` : `It is within the <b class="num">${usd(p.mid_cap)}</b> USDC council-member limit: one deputy of this pump (${pm.deputies.length ? pm.deputies.map((d) => `<span class="mono">${esc(d)}</span>`).join(", ") : "none set"}) or the steward can approve it alone.`}</p>
+      ${canDecide ? `<div class="row"><button id="act-sapprove">Approve the quote</button><button id="act-sreject" class="secondary">Turn it down</button></div>` : `<p class="muted">${j.above_mid ? `Only the holder of NFT pump-${pm.id}` : `A deputy of this pump or the holder of NFT pump-${pm.id}`} can decide.</p>`}
       ${walletAcct && walletAcct === j.mechanic ? `<p><button id="act-withdraw" class="secondary">Withdraw my quote</button></p>` : ""}`;
   } else if (j.status === "Accepted") {
     action = `<h3>Next: the mechanic says it is fixed</h3>
@@ -576,6 +578,8 @@ function pumpPage(id) {
         <div class="row fields"><label>Hand this pump to another account<input id="xfer-to" type="text" placeholder="account.testnet" autocomplete="off" spellcheck="false"></label></div>
         <p><button id="act-xfer" class="danger">Transfer NFT pump-${pm.id}</button></p>
         <p class="muted small">The new holder becomes steward at once. The money stays in the pump's own account, and a payout already in progress still goes to its mechanic.</p>
+        <div class="row fields"><label>Deputy: a council member who may approve quotes up to ${usd(p.mid_cap)} USDC alone<input id="dep-acct" type="text" placeholder="account.testnet" autocomplete="off" spellcheck="false"></label></div>
+        <div class="row"><button id="act-depadd" class="secondary">Add as deputy</button><button id="act-depdel" class="secondary">Remove deputy</button></div>
         <div class="msg" id="msg-steward" role="status"></div>
       </div>`
     : "";
@@ -591,6 +595,7 @@ function pumpPage(id) {
       <div><span class="label">Its keyless account</span><p>${acctLink(pm.vault, pm.vault)}<br><span class="muted">holds ${usd(pm.vaultBal)} USDC, read from the USDC contract</span></p></div>
       <div><span class="label">Paid out so far</span><p class="num">${usd(pm.paid_total)} USDC in ${pm.jobs_paid} finished repair(s); ${pm.forfeits} held share(s) returned</p></div>
       <div><span class="label">Highest quote it takes</span><p class="num">${usd(pm.quote_cap)} USDC</p></div>
+      <div><span class="label">Deputies (one can approve up to ${usd(p.mid_cap)} USDC)</span><p>${pm.deputies.length ? pm.deputies.map((d) => `<span class="mono">${esc(d)}</span>`).join("<br>") : "none: only the steward approves"}</p></div>
     </div>
   </div>
 
@@ -615,6 +620,33 @@ function pumpPage(id) {
   ${history.length ? `<h2>History</h2><div class="grid cols2">${history.map((x) => jobCard(x, false)).join("")}</div>` : ""}`;
 }
 
+// ---- transaction links for an invoice's payment lines, from the explorer's token-transfer index.
+// The vault pays the mechanic with a USDC transfer; the explorer lists it with the transaction that caused it.
+// If the index is unreachable the cell links to the pump account's token transfers instead.
+const TXCACHE = new Map();
+async function vaultTransfers(vault) {
+  if (TXCACHE.has(vault)) return TXCACHE.get(vault);
+  const r = await fetch(`${CONFIG.explorerApi}/v1/account/${vault}/ft-txns?per_page=50`);
+  if (!r.ok) throw new Error(`explorer ${r.status}`);
+  const rows = (await r.json()).txns ?? [];
+  TXCACHE.set(vault, rows);
+  return rows;
+}
+async function fillInvoiceTx(j) {
+  const cells = [...document.querySelectorAll("[data-tx]")];
+  if (!cells.length) return;
+  const pm = pumpOf(j.pump);
+  const fallback = pm ? `<a href="${CONFIG.explorer}/address/${pm.vault}?tab=tokentxns" target="_blank" rel="noopener">pump account's transfers</a>` : "";
+  let rows = null;
+  try { rows = await vaultTransfers(pm.vault); } catch { /* fall back below */ }
+  const price = BigInt(j.price), first = price * BigInt(S.cfg.params.first_pct) / 100n, held = price - first;
+  for (const el of cells) {
+    const want = el.dataset.tx === "first" ? first : held;
+    const hit = rows?.find((t) => BigInt(t.delta_amount) === -want && t.involved_account_id === j.mechanic && t.cause === "TRANSFER");
+    if (el.isConnected) el.innerHTML = hit ? `<a href="${CONFIG.explorer}/txns/${hit.transaction_hash}" target="_blank" rel="noopener">transaction</a>` : fallback;
+  }
+}
+
 // ---- an invoice a bookkeeper can read
 function invoicePage(id) {
   const j = jobById(id);
@@ -625,7 +657,7 @@ function invoicePage(id) {
   const held = price - first;
   const firstE = entriesFor(j, "pay_first"), heldE = entriesFor(j, "pay_held");
   const paidFirst = BigInt(j.paid) > 0n, paidHeld = j.status === "Completed" && held > 0n;
-  const line = (label, amt, state, ts) => `<tr><td>${esc(label)}</td><td class="num">${usd(amt)}</td><td>${esc(state)}</td><td class="num">${ts ? esc(when(ts)) : ""}</td></tr>`;
+  const line = (label, amt, state, ts, tx) => `<tr><td>${esc(label)}</td><td class="num">${usd(amt)}</td><td>${esc(state)}</td><td class="num">${ts ? esc(when(ts)) : ""}</td><td>${tx ? `<span data-tx="${tx}">...</span>` : ""}</td></tr>`;
   return `<p><a href="#/ledger">&larr; Public ledger</a></p>
   <div class="invoice card">
     <div class="row between"><h1 style="margin:0">Invoice ${invNo(j)}</h1><span class="chip ${j.status === "Completed" ? "ok" : ""}">${esc(invoiceStatus(j))}</span></div>
@@ -636,11 +668,11 @@ function invoicePage(id) {
       <div><span class="label">Approved by</span><p>${j.yes.length} of ${j.eligible.length} households asked said it works</p></div>
     </div>
     <div class="tablewrap" style="margin-top:14px"><table>
-      <thead><tr><th>Line</th><th>USDC</th><th>Status</th><th>Time</th></tr></thead>
+      <thead><tr><th>Line</th><th>USDC</th><th>Status</th><th>Time</th><th>Transaction</th></tr></thead>
       <tbody>
         ${price > 0n ? line("Repair, quoted total", price, j.status === "Quoted" ? "awaiting steward" : "reserved from the pump's account", 0) : line("Repair, quoted total", 0, "no quote yet", 0)}
-        ${price > 0n ? line(`${S.cfg.params.first_pct}% at village approval`, first, paidFirst ? "paid" : "due when the village approves", firstE?.ts) : ""}
-        ${price > 0n ? line(`${100 - S.cfg.params.first_pct}% held ${fmtDur(BigInt(S.cfg.params.hold_ns))}`, held, paidHeld ? "paid" : j.status === "Forfeited" ? "returned to the pump" : j.status === "Approved" ? "held" : "pending", heldE?.ts) : ""}
+        ${price > 0n ? line(`${S.cfg.params.first_pct}% at village approval`, first, paidFirst ? "paid" : "due when the village approves", firstE?.ts, paidFirst ? "first" : "") : ""}
+        ${price > 0n ? line(`${100 - S.cfg.params.first_pct}% held ${fmtDur(BigInt(S.cfg.params.hold_ns))}`, held, paidHeld ? "paid" : j.status === "Forfeited" ? "returned to the pump" : j.status === "Approved" ? "held" : "pending", heldE?.ts, paidHeld ? "held" : "") : ""}
       </tbody>
     </table></div>
     <p class="muted small">Currency: Circle's test USDC on NEAR testnet (<span class="mono">${esc(short(CONFIG.token))}</span>). Fees: paid by the relayer or the signer's own NEAR, not deducted here. Every payment is also in the <a href="#/ledger">public ledger</a>.</p>
@@ -655,10 +687,12 @@ function ledgerPage() {
     pump_added: "Water point and its account created",
     nft_transfer: "NFT handed to a new steward",
     set_cap: "Steward set the quote cap",
+    deputy_added: "Steward added a deputy (council member)",
+    deputy_removed: "Steward removed a deputy",
     report: "Pump reported broken",
-    quote: "Quote above the mechanic's limit, awaiting steward",
-    steward_ok: "Steward approved the quote",
-    quote_rejected: "Steward turned the quote down",
+    quote: "Quote above the mechanic's limit, awaiting approval",
+    steward_ok: "Quote approved (deputy or steward)",
+    quote_rejected: "Quote turned down (deputy or steward)",
     quote_withdrawn: "Mechanic withdrew the quote",
     accept: "Mechanic took the job (price reserved)",
     fix_posted: "Fix posted, households asked",
@@ -701,7 +735,7 @@ function propText(p) {
     const a = p.kind.FunctionCall.actions[0];
     const job = JSON.parse(atob(a.args)).job;
     const verb = { steward_approve: "Approve the quote on", steward_reject: "Turn down the quote on", nft_transfer: "Hand over the pump (nft_transfer), job" }[a.method_name] ?? a.method_name;
-    return `${verb} job #${job}`;
+    return `${verb} job #${job}${p.kind.FunctionCall.receiver_id === CONFIG.poolId ? "" : " of an earlier, superseded pool"}`;
   } catch {
     return p.description;
   }
@@ -720,14 +754,20 @@ function communityPage() {
   return `<h1>Community</h1>
   <p class="lead">Who is allowed to do repairs, how they earned that trust, and who decides on big quotes.</p>
   <h2>Mechanic records</h2>
-  <p class="muted">A mechanic's score is their finished repairs minus two for each held share that was forfeited. Every point traces to a job in the ledger. The score sets how large a quote they may take without the steward: up to <b class="num">${usd(t.tier0_cap)}</b> USDC at score 0, <b class="num">${usd(t.tier1_cap)}</b> at score 1 or 2, <b class="num">${usd(t.max_price)}</b> at score 3 or more. Above that limit the pump's steward must approve.</p>
+  <p class="muted">A mechanic's score is their finished repairs minus two for each held share that was forfeited. Every point traces to a job in the ledger. The score sets the largest quote they may take with no approval at all: <b class="num">${usd(t.tier0_cap)}</b> USDC at score 0, <b class="num">${usd(t.tier1_cap)}</b> at score 1 or 2, <b class="num">${usd(t.max_price)}</b> at score 3 or more.</p>
+  <h3>Three approval tiers</h3>
+  <ol class="tiers">
+    <li><b>Small, from a trusted mechanic</b>: within their limit above. Taken at once, nobody has to approve.</li>
+    <li><b>Mid-size, up to ${usd(t.mid_cap)} USDC</b>: one deputy (a council member of that pump) or the steward approves alone.</li>
+    <li><b>Large, up to ${usd(t.max_price)} USDC</b>: only the pump's steward approves. For the Village A pumps the steward is the committee DAO, so this is a proposal the whole council votes on.</li>
+  </ol>
   <div class="card tablewrap"><table>
     <thead><tr><th>Mechanic</th><th>Finished jobs</th><th>Forfeits</th><th>Score</th><th>Earned (USDC)</th><th>Takes quotes up to (USDC)</th></tr></thead>
     <tbody>${rows || `<tr><td colspan="6" class="empty">No mechanics registered yet.</td></tr>`}</tbody></table></div>
   <h2>The village committee</h2>
   ${
     d
-      ? `<p class="muted">The committee is a Sputnik DAO, ${acctLink(CONFIG.dao, CONFIG.dao)}. It holds the NFTs of the water points it stewards, so its council votes on any quote above a mechanic's limit. Council: ${d.council.map((c) => `<span class="mono">${esc(c)}</span>`).join(", ")}. A proposal passes with more than ${d.threshold ? `${d.threshold[0]}/${d.threshold[1]}` : "half"} of the council (2 of 3). Each proposal needs a ${near(d.bond, 0)} NEAR bond, returned afterwards.</p>
+      ? `<p class="muted">The committee is a Sputnik DAO, ${acctLink(CONFIG.dao, CONFIG.dao)}. It holds the NFTs of the water points it stewards, so its council votes on any large quote (above the council-member limit). Council: ${d.council.map((c) => `<span class="mono">${esc(c)}</span>`).join(", ")}. A proposal passes with more than ${d.threshold ? `${d.threshold[0]}/${d.threshold[1]}` : "half"} of the council (2 of 3). The same three council accounts are the pumps' deputies for mid-size quotes. Each proposal needs a ${near(d.bond, 0)} NEAR bond, returned afterwards.</p>
          <div class="card tablewrap"><table>
            <thead><tr><th>#</th><th>Proposal</th><th>Council votes</th><th>Status</th></tr></thead>
            <tbody>${props.map((p) => `<tr><td class="num">${p.id}</td><td>${esc(propText(p))}</td><td class="num">${votes(p)}</td><td>${esc(p.status)}</td></tr>`).join("") || `<tr><td colspan="4" class="empty">No proposals yet.</td></tr>`}</tbody></table></div>`
@@ -773,7 +813,7 @@ function tryPage() {
     mechanic: `<span class="role">Mechanic</span> signed by <span class="mono">${esc(CONFIG.sandboxSteward)}</span>, an account registered on the pool as a sandbox mechanic. Real mechanics use their own wallet on the water point's page.`,
     steward: `<span class="role">Steward</span> the holder of the pump's NFT. For this pump that is <span class="mono">${esc(pm.steward)}</span>, which this page can sign for. Pumps held by the village committee DAO need a council vote instead.`,
   };
-  const quoteOpts = [["0.5", "within a new mechanic's limit"], ["1", "within a new mechanic's limit"], ["3", "above the limit: the steward must approve"]];
+  const quoteOpts = [["0.5", "within a new mechanic's limit: taken at once"], ["1", "within a new mechanic's limit: taken at once"], ["2.5", "mid-size: one deputy or the steward approves"], ["4", "large: only the steward approves"]];
   let stage;
   if (!j) {
     stage = `<h3>Step 1. A villager reports the pump broken</h3>
@@ -782,12 +822,12 @@ function tryPage() {
       <button data-try="report">Report this pump broken</button>`;
   } else if (j.status === "Reported") {
     stage = `<h3>Step 2. A mechanic quotes in USDC</h3>
-      <p class="muted">${who.mechanic} A quote up to the mechanic's automatic limit (<b class="num">${usd(mechRec(CONFIG.sandboxSteward)?.auto_cap ?? p.tier0_cap)}</b> USDC) reserves the money at once; a bigger one waits for the steward.</p>
+      <p class="muted">${who.mechanic} A quote up to the mechanic's automatic limit (<b class="num">${usd(mechRec(CONFIG.sandboxSteward)?.auto_cap ?? p.tier0_cap)}</b> USDC) reserves the money at once; up to ${usd(p.mid_cap)} USDC one council member or the steward must approve; above that only the steward.</p>
       <div class="row fields"><label>Quote<select id="try-quote">${quoteOpts.map(([q, note]) => `<option value="${q}"${q === TRY.quote ? " selected" : ""}>${Number(q).toFixed(2)} USDC (${note})</option>`).join("")}</select></label></div>
       <button data-try="accept">Send the quote as the sandbox mechanic</button>`;
   } else if (j.status === "Quoted") {
     stage = `<h3>Step 2b. The steward decides on a big quote</h3>
-      <p class="muted">${who.steward} The quote is <b class="num">${usd(j.price)}</b> USDC, above the mechanic's limit, so nothing is reserved yet.</p>
+      <p class="muted">${who.steward} The quote is <b class="num">${usd(j.price)}</b> USDC, above the mechanic's limit, so nothing is reserved yet. ${j.above_mid ? "It is above the council-member limit, so only the steward may approve." : "It is within the council-member limit, so a deputy of the pump could also approve it."}</p>
       ${sandboxPump ? `<div class="row"><button data-try="sapprove">Approve as the steward</button><button class="secondary" data-try="sreject">Turn the quote down</button></div>` : `<p>This pump is held by ${esc(holderName(pm.steward))}. Approval is a DAO proposal that its council votes on: see <a href="#/community">Community</a>. Pick a Village B pump to play the steward yourself.</p>`}`;
   } else if (j.status === "Accepted") {
     stage = `<h3>Step 3. The mechanic says it is fixed</h3>
@@ -825,7 +865,7 @@ function tryPage() {
   <div class="roles">
     <div><span class="role">Villager</span><p>Reports and votes with a one-time code from a printed card. The relayer pays the gas.</p></div>
     <div><span class="role">Mechanic</span><p>Quotes, and posts the fix. Here a sandbox account signs; on the water point's page you use your own wallet.</p></div>
-    <div><span class="role">Steward</span><p>Holds the pump's NFT and approves big quotes. On Village B pumps this page signs for the steward; Village A pumps belong to the committee DAO.</p></div>
+    <div><span class="role">Steward</span><p>Holds the pump's NFT and approves big quotes. On Village B pumps this page signs for the steward; on Village A pumps a council member or the committee DAO decides.</p></div>
     <div><span class="role">Donor</span><p>Sends USDC from a NEAR wallet. <a href="#/pump/${pm.id}">Open this water point</a> to give.</p></div>
     <div><span class="role">Observer</span><p>Reads the public ledger, invoices, mechanic records and each pump's NFT. Nothing to sign.</p></div>
   </div>
@@ -908,6 +948,7 @@ function wire(r) {
   }
   if (r.name === "job") {
     document.getElementById("print")?.addEventListener("click", () => window.print());
+    fillInvoiceTx(jobById(r.id));
     document.getElementById("csv-one")?.addEventListener("click", () => {
       const rows = invoiceRows();
       download(`${invNo(jobById(r.id))}.csv`, [rows[0], rows[r.id + 1]]);
@@ -954,6 +995,13 @@ function wire(r) {
   document.getElementById("act-sreject")?.addEventListener("click", () => run(msg, "Turning the quote down", () => W.callPool(CONFIG.poolId, "steward_reject", { job: j.id })));
   document.getElementById("act-withdraw")?.addEventListener("click", () => run(msg, "Withdrawing the quote", () => W.callPool(CONFIG.poolId, "withdraw_quote", { job: j.id })));
   document.getElementById("act-fix")?.addEventListener("click", () => run(msg, "Posting the fix", () => W.callPool(CONFIG.poolId, "post_fix", { job: j.id })));
+  const deputy = (on) => run(smsg, on ? "Adding the deputy" : "Removing the deputy", () => {
+    const account = document.getElementById("dep-acct").value.trim();
+    if (!account) return { ok: false, error: "Type the account of the council member." };
+    return W.callPool(CONFIG.poolId, "set_deputy", { pump: id, account, on });
+  });
+  document.getElementById("act-depadd")?.addEventListener("click", () => deputy(true));
+  document.getElementById("act-depdel")?.addEventListener("click", () => deputy(false));
   document.getElementById("act-cap")?.addEventListener("click", () =>
     run(smsg, "Setting the cap", () => W.callPool(CONFIG.poolId, "set_quote_cap", { pump: id, cap: toUnits(document.getElementById("cap").value).toString() })),
   );

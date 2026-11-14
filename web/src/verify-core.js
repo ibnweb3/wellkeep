@@ -76,6 +76,7 @@ export function decodeInitialState(bytes) {
     max_price: u128().toString(),
     tier0_cap: u128().toString(),
     tier1_cap: u128().toString(),
+    mid_cap: u128().toString(),
     first_pct: u8(),
     rebroken_needed: u32(),
     max_attempts: u8(),
@@ -175,6 +176,7 @@ export async function runChecks({ rpcUrl, poolId, wasmUrl, vaultWasmUrl, stateUr
     String(p.max_price) === q.max_price &&
     String(p.tier0_cap) === q.tier0_cap &&
     String(p.tier1_cap) === q.tier1_cap &&
+    String(p.mid_cap) === q.mid_cap &&
     p.first_pct === q.first_pct &&
     p.rebroken_needed === q.rebroken_needed &&
     p.max_attempts === q.max_attempts;
