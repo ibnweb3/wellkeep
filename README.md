@@ -1,5 +1,17 @@
 # WellKeep
 
+> **A story first (a made-up village, to show the problem).**
+>
+> The borehole at Ugbo was drilled with a donor's money. There was a ribbon, a plaque and a photograph. For two years the handpump gave clean water to about three hundred people.
+>
+> Then the pump's seal wore out. A mechanic in the next town would fix it for the price of a few bags of cement, but there was no fund to pay him, and nobody in Ugbo could prove to a stranger that the money would be spent on the pump. So the women went back to the stream, a long walk away, and the children who carried the water fell sick more often. The plaque is still there.
+>
+> The same village, with WellKeep: the pump has its own account that holds its repair money, and nobody holds a key to it. A mother in Ugbo reports the pump broken with the one-time code from her household's printed card. A registered mechanic quotes the price. After the repair, her household and about eight others are asked one question: *does it work now?* Only when two thirds say yes does the mechanic get paid, from the pump's own account, and a donor in another country can open the page and see every report, vote and dollar of it.
+>
+> Ugbo is invented, and so are its people. The problem is not: about one handpump in four in sub-Saharan Africa is out of order at any time ([Foster and others, water point data](https://waterpointdata.org/wp-content/uploads/2020/11/Functionality-of-handpump-water-supplies.pdf)). The money that built them is not the money that keeps them running.
+
+![The WellKeep overview page: "One broken pump shouldn't bring back a five-mile walk"](docs/screenshots/01-overview.png)
+
 A public repair fund for community water points, on NEAR testnet. Every water point is an NFT **and** its own keyless account that holds its repair money in USDC. A village committee (a Sputnik DAO) holds the NFTs. A mechanic is paid only after the village confirms the pump works.
 
 **In 30 seconds.** A donor pays for a borehole, then it breaks because nobody has money to fix it. WellKeep keeps a repair fund for each water point, and nobody holds a key to it. A household reports a pump broken with a one-time code from a printed card. A registered mechanic quotes a price in USDC. A small quote from a trusted mechanic goes straight through; a mid-size one is approved by one council member of that pump; a large one needs the pump's steward, which is the holder of the pump's NFT (for Village A, the village committee DAO votes). After the fix, the reporter plus about eight random households are asked "does it work now?". If two thirds say yes, the mechanic is paid 70% at once from the pump's own account and 30% an hour later, unless two different households report the pump broken again. Every report, vote and payment is public. A donor can run one check that proves, from the chain alone, that no key exists for the fund or for any pump's account, and that their code cannot change.
@@ -7,6 +19,32 @@ A public repair fund for community water points, on NEAR testnet. Every water po
 Built on NEAR for NEAR HACKATHON. Tracks: **NFTs That Do Something**, **Real-World Money**, **Social Money**. This is a prototype on testnet with test money (Circle's testnet USDC). It has not been tested with any real community. A second entry from the same author, [Cautio](https://github.com/ibnweb3/cautio) (rental deposits in a keyless NEAR account, [live](https://cautio.ibnweb3lab.workers.dev)), uses the same idea of an account that nobody holds a key to.
 
 Live (testnet): https://wellkeep.ibnweb3lab.workers.dev
+
+## What it looks like
+
+All screenshots are of the live testnet site, taken on 2026-11-14 with test USDC.
+
+**A water point is an NFT and its own account.** The pump's page shows the NEP-171 token, who holds it (the steward), its keyless account, its USDC balance read from the USDC contract, its deputies, and the job in progress. This one was signed from a real wallet (see `evidence/wallet-run.md`).
+
+![Pump page: NFT pump-6, its keyless account, steward, deputy and the current job](docs/screenshots/02-pump-nft-and-steward.png)
+
+**Every repair has an invoice**, with the payee, the quote, the 70% and 30% lines, a link to the payment's transaction, and a CSV download.
+
+![Invoice WK-0005: 2.50 USDC quote, 1.75 paid, 0.75 held](docs/screenshots/03-invoice.png)
+
+**A donor can check before giving.** The page reads the chain and recomputes the pool's address in the browser: no access keys, code fixed by hash, same code as this repository.
+
+![Check before you give: the first checks passing](docs/screenshots/07-verification-checks.png)
+
+**One public board** of repairs, payments, failed payments and invoices, and a community page with mechanic records and the committee's proposals.
+
+![Ledger and invoices](docs/screenshots/04-ledger-and-invoices.png)
+
+![Community: mechanic records, approval tiers and DAO proposals](docs/screenshots/05-community-and-reputation.png)
+
+**Try every role without a wallet.** The Try page lets a visitor report a pump, quote, post the fix and vote through a relayer that pays the gas.
+
+![Try it page](docs/screenshots/06-try-it.png)
 
 ## How it fits each track
 
