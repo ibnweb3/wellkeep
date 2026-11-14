@@ -324,6 +324,7 @@ async function refresh() {
     await load();
     updatedAt = Date.now();
   } catch (e) {
+    if (S.cfg) return; // a background refresh failed (for example the public RPC rate-limited us): keep what is on screen
     $main.innerHTML = `<div class="card"><h2>Could not read the chain</h2><p class="muted">${esc(e.message)}</p><button id="retry">Try again</button></div>`;
     document.getElementById("retry")?.addEventListener("click", refresh);
     return;
@@ -993,7 +994,7 @@ setInterval(() => {
 }, 1000);
 setInterval(() => {
   if (!busy && document.visibilityState === "visible" && !document.activeElement?.matches("select, input, textarea") && !document.querySelector("details[open]")) refresh();
-}, 15000);
+}, 30000);
 window.addEventListener("hashchange", () => {
   for (const k in lastMsg) delete lastMsg[k];
   render();
