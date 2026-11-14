@@ -1,0 +1,44 @@
+{
+ "pool": "0sedce5ef2a8c3f587df86bd10a8a631fb9f7eaa19",
+ "job": 0,
+ "daoProposal": 0,
+ "steps": [
+  {
+   "label": "hh-0 reports pump 0 broken",
+   "hash": "5Y6DfQ6ZkSWtRAP2kH4KeCWGREFerzwbS3gKrkPGUkKH"
+  },
+  {
+   "label": "mechanic quotes 3 USDC on job 0 (above the 1 USDC limit)",
+   "hash": "89FAnFQn2xFwFud3Ps2FF5xbYMxXjWVRvv9j25vBcTSS"
+  },
+  {
+   "label": "mechanic posts the fix",
+   "hash": "DVs9SVF5iSqckqT13PuDfNHPSiDDZNXBByE7MmaMya5i"
+  },
+  {
+   "label": "hh-0 says it works",
+   "hash": "A9WaaXZAKxrsbX9EVR9QYt48y96CxJ8ocxJbahMH5qco"
+  },
+  {
+   "label": "hh-16 says it works",
+   "hash": "HnhF1FZJCnNLN4CfE2D5TanYExeVFsCUWhtGTEekMijA"
+  },
+  {
+   "label": "hh-12 says it works",
+   "hash": "3sQAh8r7jLaSvCy9LE6XNM5r6coVH2ZgRQBrKds5oRUY"
+  },
+  {
+   "label": "hh-11 says it works",
+   "hash": "8mY3oy5BQQ26eVQsbW1MV9Sj4ht7eWmAqJqGxzcm77hh"
+  },
+  {
+   "label": "hh-2 says it works",
+   "hash": "3iyXzZyuFJdwG3bxjP75umXiSDVto5nHPfLee4Z3ffUH"
+  }
+ ],
+ "status": "Approved",
+ "paid": "2100000",
+ "held": "900000",
+ "approvedNs": "1794615922020186460",
+ "at": "2026-11-14T00:22:52.356Z"
+}
