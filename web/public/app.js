@@ -15,7 +15,7 @@ const usedCache = new Map();
 let busy = false;
 let lastRoute = null;
 let lastChecks = null; // survives the periodic re-render
-const TRY = { pump: null, hh: 20, quote: "1", log: [] }; // the judge sandbox keeps its place across re-renders
+const TRY = { pump: null, hh: Math.floor(Math.random() * 150), /* a random household, so repeated visitors do not all use up the same card rows */ quote: "1", log: [] }; // the judge sandbox keeps its place across re-renders
 const NFT = new Map(); // nft_token reads, cached per ownership
 let CARDS = null;
 
