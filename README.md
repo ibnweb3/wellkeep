@@ -10,6 +10,8 @@
 >
 > Ugbo is invented, and so are its people. The problem is not: about one handpump in four in sub-Saharan Africa is out of order at any time ([Foster and others, water point data](https://waterpointdata.org/wp-content/uploads/2020/11/Functionality-of-handpump-water-supplies.pdf)). The money that built them is not the money that keeps them running.
 
+**Demo video (2 minutes):** [docs/demo/wellkeep-demo.mp4](docs/demo/wellkeep-demo.mp4)
+
 ![The WellKeep overview page: "One broken pump shouldn't bring back a five-mile walk"](docs/screenshots/01-overview.png)
 
 A public repair fund for community water points, on NEAR testnet. Every water point is an NFT **and** its own keyless account that holds its repair money in USDC. A village committee (a Sputnik DAO) holds the NFTs. A mechanic is paid only after the village confirms the pump works.
